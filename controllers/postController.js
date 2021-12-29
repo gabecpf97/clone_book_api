@@ -1,8 +1,4 @@
-const async = require('async');
-const bcrypt = require('bcrypt');
-const { body, check, validationResult } = require('express-validator');
-const jwt = require('jsonwebtoken');
-const passport = require('passport');
+const { body, validationResult } = require('express-validator');
 const fs = require('fs');
 const path = require('path');
 const User = require('../models/user');
@@ -63,7 +59,7 @@ exports.post_get = (req, res, next) => {
 }
 
 exports.post_update = [
-    body('message', "Message must not be empty").trim().isLength({min: 0}).escape(),
+    body('message', "Message must not be empty").trim().isLength({min: 1}).escape(),
     (req, res, next) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {

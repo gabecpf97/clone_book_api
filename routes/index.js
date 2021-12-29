@@ -63,7 +63,7 @@ router.get('/media/', auth, postController.media_get);
 // http://localhost:3000/media/?name=uploads\\2021-12-29T06-50-27.997Ztest_post_1.jpg
 
 // comment api calls
-// router.post('/comment', auth, postController.comment_create);
+router.post('/post/:id/comment', auth, commentController.comment_create);
 // router.get('/comment/:id', auth, commentController.comment_get);
 // router.put('/comment/:id', auth, commentController.comment_update);
 // router.put('/comment/:id', auth, commentController.comment_delete);

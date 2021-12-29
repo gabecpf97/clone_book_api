@@ -7,7 +7,7 @@ const postSchema = new Schema({
     media: [{type: String}],
     date: {type: Date, required: true},
     likes: [{type: Schema.Types.ObjectId, ref: 'User'}],
-    comments: {type: Schema.Types.ObjectId, ref: 'Comment'},
+    comments: [{type: Schema.Types.ObjectId, ref: 'Comment'}],
 });
 
 module.exports = mongoose.model('Post', postSchema);
