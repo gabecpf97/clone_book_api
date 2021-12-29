@@ -54,9 +54,11 @@ router.put('/user/:id/remove_follower', auth, userController.user_remove_followe
 // post api calls
 router.post('/post/create', auth, upload.single('image'), postController.post_create);
 router.get('/post/:id', auth, postController.post_get);
-router.get('/post/:id/media', auth, postController.post_get_media);
 // router.put('/post/:id', auth, postController.post_update);
 // router.delete('/post/:id', auth, postController.post_delete);
+router.get('/media/', auth, postController.media_get);
+// get media
+// http://localhost:3000/media/?name=uploads\\2021-12-29T06-50-27.997Ztest_post_1.jpg
 
 // comment api calls
 // router.post('/comment', auth, postController.comment_create);

@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const { body, check, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
+const fs = require('fs');
 const path = require('path');
 const User = require('../models/user');
 const Post = require('../models/post');
@@ -73,4 +74,14 @@ exports.post_get_media = (req, res, next) => {
             res.sendFile(path.join(__dirname, '../', thePost.media[0]));
         }
     });
+}
+
+exports.media_get = (req, res, next) => {
+    // res.send(`${req.query.name}`);
+    const imagePath = path.join(__dirname, '../', req.query.name);
+    if (fs.access(imagePath, fs.F_OK, (err) => {
+        if (err)
+            return next(err);
+        res.sendFile(imagePath);
+    }));
 }
