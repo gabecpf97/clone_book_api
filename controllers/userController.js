@@ -4,8 +4,6 @@ const { body, check, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const User = require('../models/user');
-const Post = require('../models/post');
-const Comment = require('../models/comment');
 
 exports.user_create = [
     body('username', 'Username must be longer than 4 letter').trim().isLength({min: 4}).escape(),
