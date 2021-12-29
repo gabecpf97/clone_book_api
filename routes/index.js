@@ -5,6 +5,33 @@ const userController = require('../controllers/userController');
 const postController = require('../controllers/postController');
 const commentController = require('../controllers/commentController');
 const auth = passport.authenticate('jwt', {session: false});
+const multer = require('multer');
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, './uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, new Date().toISOString().replace(/:/g, '-') + file.originalname);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  if (
+    file.mimetype === "image/jpeg" ||
+    file.mimetype === "image/png" ||
+    file.mimetype === "image/jpg"
+  ) {
+    return cb(null, true);
+  }
+  req.fileValidationError = 'Please sent a image files';
+  return cb(null, false);
+};
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5000000 },
+  fileFilter: fileFilter
+});
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -25,7 +52,7 @@ router.put('/user/:id/unapprove', auth, userController.user_un_approve);
 router.put('/user/:id/remove_follower', auth, userController.user_remove_follower);
 
 // post api calls
-// router.post('/post', auth, postController.post_create);
+router.post('/post/create', auth, upload.single('image'), postController.post_create);
 // router.get('/post/:id', auth, postController.post_get);
 // router.put('/post/:id', auth, postController.post_update);
 // router.delete('/post/:id', auth, postController.post_delete);
