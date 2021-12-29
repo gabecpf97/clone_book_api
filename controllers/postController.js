@@ -52,6 +52,7 @@ exports.post_get = (req, res, next) => {
             return next(new Error('No such post'));
         } else {
             const post = thePost;
+            post.likes = _filterUser(thePost.likes);
             post.user = {
                 _id: thePost.user._id,
                 username: thePost.user.username,
@@ -115,7 +116,6 @@ exports.post_delete = (req, res, next) => {
 
 exports.post_like = (req, res, next) => {
     Post.findById(req.params.id).exec((err, thePost) => {
-        // console.log('here');
         if (err)
             return next(err);
         if(!thePost) {
@@ -137,6 +137,29 @@ exports.post_like = (req, res, next) => {
     })
 }
 
+exports.post_unlike = (req, res, next) => {
+    Post.findById(req.params.id).exec((err, thePost) => {
+        if (err)
+            return next(err);
+        if (!thePost) {
+            return next(new Error('No such post'));
+        } else {
+            const like_exist = _checkLiked(thePost.likes, req.user._id);
+            if (like_exist > -1) {
+                const like_arr = thePost.likes;
+                like_arr.splice(like_exist, 1);
+                Post.findByIdAndUpdate(req.params.id, {likes: like_arr}, {}, (err, newPost) => {
+                    if (err)
+                        return next(err);
+                    res.send({success: 'Unliked post'});
+                });
+            } else {
+                return next(new Error(`${req.user.username} did not liked this post`));
+            }
+        }
+    })
+}
+
 exports.media_get = (req, res, next) => {
     const imagePath = path.join(__dirname, '../', req.query.name);
     if (fs.access(imagePath, fs.F_OK, (err) => {
@@ -144,6 +167,16 @@ exports.media_get = (req, res, next) => {
             return next(err);
         res.sendFile(imagePath);
     }));
+}
+
+function _filterUser(arr) {
+    for (let i = 0; i < arr.length; i++) {
+        arr[i] = {
+            _id: arr[i]._id,
+            username: arr[i].username,
+        }
+    }
+    return arr;
 }
 
 function _checkLiked(arr, targetID) {

@@ -56,6 +56,7 @@ router.post('/post/create', auth, upload.single('image'), postController.post_cr
 router.get('/post/:id', auth, postController.post_get);
 router.put('/post/:id', auth, upload.single('image'), postController.post_update);
 router.put('/post/:id/like', auth, postController.post_like);
+router.put('/post/:id/unlike', auth, postController.post_unlike);
 router.delete('/post/:id', auth, postController.post_delete);
 router.get('/media/', auth, postController.media_get);
 // get media
