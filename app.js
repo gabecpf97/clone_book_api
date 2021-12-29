@@ -49,7 +49,7 @@ passport.use(new JWTStrategy({
       if (err)
         return cb(err);
       if (user === null) {
-        const err = new Error("Unauth no such user");
+        const err = new Error("Please login or sign up");
         err.status = 404;
         return cb(err);
       } else {

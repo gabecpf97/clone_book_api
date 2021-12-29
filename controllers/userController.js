@@ -89,7 +89,7 @@ exports.user_get = (req, res, next) => {
         if (err)
             return next(err);
         if (theUser.private) {
-            if (_containUser(theUser.follower, req.user._id)) {
+            if (_containUser(theUser.follower, req.user._id) > -1) {
                 res.send({user: theUser});
             } else {
                 res.send({private: true});
@@ -256,9 +256,9 @@ exports.user_follow = (req, res, next) => {
             if (!theUser) {
                 return next(new Error('No such user'));
             } else {
-                if (_containUser(theUser.follower, req.user._id)) {
+                if (_containUser(theUser.follower, req.user._id) > -1) {
                     res.send({message: 'Alreaday Follower'});
-                } else if (_containUser(theUser.pending_follower, req.user._id)) {
+                } else if (_containUser(theUser.pending_follower, req.user._id) > -1) {
                     res.send({message: 'Already sent request'})
                 } else {
                     if (theUser.private) {
@@ -271,8 +271,10 @@ exports.user_follow = (req, res, next) => {
                             res.send({success: 'added to pending'});
                         });
                     } else {
-                        const target_arr = theUser.follower.push(req.user._id);
-                        const my_arr = req.user.following.push(req.params.id);
+                        const target_arr = theUser.follower
+                        const my_arr = req.user.following
+                        my_arr.push(req.params.id);
+                        target_arr.push(req.user._id);
                         async.parallel({
                             target: (callback) => {
                                 User.findByIdAndUpdate(req.params.id, {follower: target_arr}, 
@@ -308,17 +310,19 @@ exports.user_un_follow = (req, res, next) => {
             if (!theUser) {
                 return next(new Error('No such user'));
             } else {
-                const f_array = [];
-                const my_array = [];
+                let f_array = [];
+                let my_array = [];
                 const my_array_index = _containUser(req.user.following, theUser._id);
                 const follower_index = _containUser(theUser.follower, req.user._id);
                 const pending_index = _containUser(theUser.pending_follower, req.user._id);
-                if (!follower_index && !pending_index) {
+                if (follower_index < 0 && pending_index > 0) {
                     res.send({err: 'No pending or following this user'});
                 } else {
-                    if (follower_index) {
-                        f_array = theUser.follower.slice(follower_index, 1);
-                        my_array = req.user.following.slice(my_array_index, 1);
+                    if (follower_index > -1) {
+                        f_array = theUser.follower;
+                        my_array = req.user.following;
+                        f_array.splice(follower_index, 1);
+                        my_array.splice(my_array_index, 1);
                         async.parallel({
                             target: (callback) => {
                                 User.findByIdAndUpdate(req.params.id, {follower: f_array},
@@ -338,7 +342,8 @@ exports.user_un_follow = (req, res, next) => {
                             }
                         })
                     } else {
-                        f_array = theUser.pending_follower.slice(pending_index, 1);
+                        const f_array = theUser.pending_follower;
+                        f_array.splice(pending_index, 1);
                         User.findByIdAndUpdate(req.params.id, {pending_follower: f_array},
                             {}, (err, newUser) => {
                                 if (err)
@@ -358,5 +363,5 @@ function _containUser(arr, targetID) {
         if (arr[i]._id.equals(targetID))
             return i;
     }
-    return false;
+    return -1;
 }
