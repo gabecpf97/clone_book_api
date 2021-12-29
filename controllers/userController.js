@@ -423,12 +423,15 @@ exports.user_approve = (req, res, next) => {
             if (!theUser) {
                 return next(new Error('No such user'));
             } else {
+                const target_p_index = _containUser(theUser.pending_following, req.user._id);
                 const p_array = req.user.pending_follower;
                 const f_array = req.user.follower;
                 const target_f_array = theUser.following;
+                const target_p_array = theUser.pending_following;
                 p_array.splice(target_index, 1);
                 f_array.push(req.params.id);
                 target_f_array.push(req.user._id);
+                target_p_array.splice(target_p_index, 1);
                 async.parallel({
                     mine: (callback) => {
                         User.findByIdAndUpdate(req.user._id, {
@@ -437,8 +440,10 @@ exports.user_approve = (req, res, next) => {
                         }, {}, callback);
                     },
                     target: (callback) => {
-                        User.findByIdAndUpdate(req.params.id, {following: target_f_array},
-                            {}, callback);
+                        User.findByIdAndUpdate(req.params.id, {
+                            following: target_f_array,
+                            pending_following: target_p_array,
+                        }, {}, callback);
                     }
                 }, (err, results) => {
                     if (err)
