@@ -64,8 +64,8 @@ router.get('/media/', auth, postController.media_get);
 
 // comment api calls
 router.post('/post/:id/comment', auth, commentController.comment_create);
-// router.get('/comment/:id', auth, commentController.comment_get);
-// router.put('/comment/:id', auth, commentController.comment_update);
-// router.put('/comment/:id', auth, commentController.comment_delete);
+router.get('/comment/:id', auth, commentController.comment_get);
+router.put('/comment/:id', auth, commentController.comment_update);
+router.delete('/comment/:id', auth, commentController.comment_delete);
 
 module.exports = router;
