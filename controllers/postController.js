@@ -113,6 +113,30 @@ exports.post_delete = (req, res, next) => {
     })
 }
 
+exports.post_like = (req, res, next) => {
+    Post.findById(req.params.id).exec((err, thePost) => {
+        // console.log('here');
+        if (err)
+            return next(err);
+        if(!thePost) {
+            return next(new Error('No such post'));
+        } else {
+            const like_exist = _checkLiked(thePost.likes, req.user._id);
+            if (like_exist < 0) {
+                const like_arr = thePost.likes;
+                like_arr.push(req.user._id);
+                Post.findByIdAndUpdate(req.params.id, {likes: like_arr}, {}, (err, newPost) => {
+                    if (err)
+                        return next(err);
+                    res.send({success: 'Liked post'});
+                });
+            } else {
+                return next(new Error('Already liked'));
+            }
+        }
+    })
+}
+
 exports.media_get = (req, res, next) => {
     const imagePath = path.join(__dirname, '../', req.query.name);
     if (fs.access(imagePath, fs.F_OK, (err) => {
@@ -120,4 +144,12 @@ exports.media_get = (req, res, next) => {
             return next(err);
         res.sendFile(imagePath);
     }));
+}
+
+function _checkLiked(arr, targetID) {
+    for (let i = 0; i < arr.length; i++) {
+        if (arr[i]._id.equals(targetID))
+            return i;
+    }
+    return -1;
 }
