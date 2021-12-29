@@ -42,5 +42,35 @@ exports.post_create = [
     }
 ]
 
-// send back image
-// res.sendFile(path.join(__dirname, '../', req.file.path));
+exports.post_get = (req, res, next) => {
+    Post.findById(req.params.id).populate('user')
+    .populate('likes').populate('comments').exec((err, thePost) => {
+        if (err)
+            return next(err);
+        if (!thePost) {
+            return next(new Error('No such post'));
+        } else {
+            const post = thePost;
+            post.user = {
+                _id: thePost.user._id,
+                username: thePost.user.username,
+            }
+            res.send({post});
+        }
+    });
+}
+
+exports.post_get_media = (req, res, next) => {
+    Post.findById(req.params.id).populate('user')
+    .populate('likes').populate('comments').exec((err, thePost) => {
+        if (err)
+            return next(err);
+        if (!thePost) {
+            return next(new Error('No such post'));
+        } else {
+            if (thePost.media.length < 1)
+                return next(new Error('No media'));
+            res.sendFile(path.join(__dirname, '../', thePost.media[0]));
+        }
+    });
+}

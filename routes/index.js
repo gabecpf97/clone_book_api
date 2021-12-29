@@ -53,7 +53,8 @@ router.put('/user/:id/remove_follower', auth, userController.user_remove_followe
 
 // post api calls
 router.post('/post/create', auth, upload.single('image'), postController.post_create);
-// router.get('/post/:id', auth, postController.post_get);
+router.get('/post/:id', auth, postController.post_get);
+router.get('/post/:id/media', auth, postController.post_get_media);
 // router.put('/post/:id', auth, postController.post_update);
 // router.delete('/post/:id', auth, postController.post_delete);
 
