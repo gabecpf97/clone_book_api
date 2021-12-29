@@ -9,7 +9,7 @@ const userSchema = new Schema({
     last_name: {type:String, required: true},
     date_join: {type: String, required: true},
     private: {type: Boolean, required: true},
-    // icon: {type: String, required: true},
+    icon: {type: String, required: true},
     following: [{type: Schema.Types.ObjectId, ref: 'User'}],
     follower: [{type: Schema.Types.ObjectId, ref: 'User'}],
     pending_following: [{type: Schema.Types.ObjectId, ref: 'User'}],

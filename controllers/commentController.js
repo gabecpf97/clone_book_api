@@ -83,14 +83,29 @@ exports.comment_update = [
             if (req.fileValidationError) {
                 return next(new Error(req.fileValidationError));
             } else {
-                const updates = { message: req.body.comment };
-                if (req.file)
-                    updates.media = req.file.path;
-                Comment.findByIdAndUpdate(req.params.id, updates, {}, (err, newComment) => {
+                Comment.findById(req.params.id).exec((err, theComment) => {
                     if (err)
-                        return next(err)
-                    res.send({success: 'updated comment'});
-                });
+                        return next(err);
+                    if (!theComment) {
+                        return next(new Error('No such comment'));
+                    } else {
+                        const updates = { message: req.body.comment };
+                        if (req.file) {
+                            fs.unlink(theComment.media, err => {
+                                if (err)
+                                    console.log('fail delete media');
+                                else
+                                    console.log('media deleted');
+                            })
+                            updates.media = req.file.path;
+                        }
+                        Comment.findByIdAndUpdate(req.params.id, updates, {}, (err, newComment) => {
+                            if (err)
+                                return next(err)
+                            res.send({success: 'updated comment'});
+                        });
+                    }
+                })
             }
         }
     }

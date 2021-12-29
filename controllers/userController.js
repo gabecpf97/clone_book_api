@@ -44,25 +44,31 @@ exports.user_create = [
         if (!errors.isEmpty()) {
             res.send({errors: errors.array()});
         } else {
-            bcrypt.hash(req.body.password, 10, (err, hashedPassword) => {
-                if (err)
-                    return next(err);
-                const user = new User({
-                    username: req.body.username,
-                    email: req.body.email,
-                    first_name: req.body.first_name,
-                    last_name: req.body.last_name,
-                    date_join: new Date,
-                    private: req.body.private,
-                });
-                user.password = hashedPassword;
-                user.save(err => {
+            if (req.fileValidationError) {
+                return next(new Error(req.fileValidationError));
+            } else {
+                bcrypt.hash(req.body.password, 10, (err, hashedPassword) => {
                     if (err)
                         return next(err);
-                    const token = jwt.sign({user}, process.env.S_KEY);
-                    res.send({token, user});
-                })
-            })
+                    const user = new User({
+                        username: req.body.username,
+                        email: req.body.email,
+                        first_name: req.body.first_name,
+                        last_name: req.body.last_name,
+                        date_join: new Date,
+                        private: req.body.private,
+                    });
+                    if (req.file)
+                        user.icon = req.file.path;
+                    user.password = hashedPassword;
+                    user.save(err => {
+                        if (err)
+                            return next(err);
+                        const token = jwt.sign({user}, process.env.S_KEY);
+                        res.send({token, user});
+                    });
+                });
+            }
         }
     }
 ]
@@ -164,27 +170,40 @@ exports.user_update = [
             if (!errors.isEmpty()) {
                 return res.send({errors: errors.array()});
             } else {
-                User.findById(req.params.id).exec((err, theUser) => {
-                    if (err)
-                        return next(err);
-                    if (!theUser) {
-                        return next(new Error('No such user'));
-                    } else {
-                        const user = {
-                            username: req.body.username,
-                            email: req.body.email,
-                            password: theUser.password,
-                            first_name: req.body.first_name,
-                            last_name: req.body.last_name,
-                            private: req.body.private,
-                        };
-                        User.findByIdAndUpdate(req.params.id, user, {}, (err, theUser) => {
-                            if (err)
-                                return next(err);
-                            res.send({success: 'updated'});
-                        })
-                    }
-                });
+                if (req.fileValidationError) {
+                    return next(new Error(req.fileValidationError));
+                } else {
+                    User.findById(req.params.id).exec((err, theUser) => {
+                        if (err)
+                            return next(err);
+                        if (!theUser) {
+                            return next(new Error('No such user'));
+                        } else {
+                            const user = {
+                                username: req.body.username,
+                                email: req.body.email,
+                                password: theUser.password,
+                                first_name: req.body.first_name,
+                                last_name: req.body.last_name,
+                                private: req.body.private,
+                            };
+                            if (req.file) {
+                                fs.unlink(theUser.icon, err => {
+                                    if (err)
+                                        console.log('fail delete media');
+                                    else
+                                        console.log('media deleted');
+                                })    
+                                user.icon = req.file.path;
+                            }
+                            User.findByIdAndUpdate(req.params.id, user, {}, (err, theUser) => {
+                                if (err)
+                                    return next(err);
+                                res.send({success: 'updated'});
+                            })
+                        }
+                    });
+                }
             }
         } else {
             return next(new Error('Not authorize to edit this user'));

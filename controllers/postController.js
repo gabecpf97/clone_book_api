@@ -75,8 +75,15 @@ exports.post_update = [
                         return next(new Error('No such post'));
                     } else {
                         const update = { message: req.body.message };
-                        if (req.file)
+                        if (req.file) {
+                            fs.unlink(thePost.media, err => {
+                                if (err)
+                                    console.log('fail delete media');
+                                else
+                                    console.log('media deleted');
+                            })
                             update.media = req.file.path;
+                        }
                         Post.findByIdAndUpdate(req.params.id, update, {}, (err, newPost) => {
                             if (err)
                                 return next(err);

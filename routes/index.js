@@ -39,7 +39,7 @@ router.get('/', function(req, res, next) {
 });
 
 // user api calls
-router.post('/user/create', userController.user_create);
+router.post('/user/create', upload.single('image'), userController.user_create);
 router.post('/user/login', userController.user_logIn);
 router.get('/user/:id', auth, userController.user_get);
 router.delete('/user/:id', auth, userController.user_delete);
@@ -58,12 +58,14 @@ router.put('/post/:id', auth, upload.single('image'), postController.post_update
 router.put('/post/:id/like', auth, postController.post_like);
 router.put('/post/:id/unlike', auth, postController.post_unlike);
 router.delete('/post/:id', auth, postController.post_delete);
+
+// get media
 router.get('/media/', auth, postController.media_get);
 // get media
 // http://localhost:3000/media/?name=uploads\\2021-12-29T06-50-27.997Ztest_post_1.jpg
 
 // comment api calls
-router.post('/post/:id/comment', auth, commentController.comment_create);
+router.post('/post/:id/comment', auth, upload.single('image'), commentController.comment_create);
 router.get('/comment/:id', auth, commentController.comment_get);
 router.put('/comment/:id', auth, commentController.comment_update);
 router.put('/comment/:id/like', auth, commentController.comment_like);
