@@ -42,10 +42,10 @@ passport.use(new LocalStrategy(
 
 passport.use(new JWTStrategy({
     jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
-    secretOrKey: 'secret_key',
+    secretOrKey: process.env.S_KEY,
   },
   (jwtPayload, cb) => {
-    User.findById(jwtPayload.theUser._id, (err, user) => {
+    User.findById(jwtPayload.user._id, (err, user) => {
       if (err)
         return cb(err);
       if (user === null) {
@@ -98,7 +98,7 @@ app.use(function(err, req, res, next) {
 
   // render the error page
   res.status(err.status || 500);
-  res.send({errors: err});
+  res.send({err: res.locals.message});
 });
 
 module.exports = app;
