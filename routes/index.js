@@ -22,6 +22,7 @@ router.put('/user/:id/follow', auth, userController.user_follow);
 router.put('/user/:id/unfollow', auth, userController.user_un_follow);
 router.put('/user/:id/approve', auth, userController.user_approve);
 router.put('/user/:id/unapprove', auth, userController.user_un_approve);
+router.put('/user/:id/remove_follower', auth, userController.user_remove_follower);
 
 // post api calls
 // router.post('/post', auth, postController.post_create);

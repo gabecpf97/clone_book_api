@@ -382,7 +382,33 @@ exports.user_un_follow = (req, res, next) => {
 exports.user_remove_follower = (req, res, next) => {
     const target_index = _containUser(req.user.follower, req.params.id);
     if (target_index > -1) {
-
+        User.findById(req.params.id).exec((err, theUser) => {
+            if (err)
+                return next(err);
+            if (!theUser) {
+                return next(new Error('No such user'));
+            } else {
+                const following_index = _containUser(theUser.follower, req.user._id);
+                const following_arr = theUser.following;
+                const follower_arr = req.user.follower;
+                following_arr.splice(following_arr, 1);
+                follower_arr.splice(target_index, 1);
+                async.parallel({
+                    mine: (callback) => {
+                        User.findByIdAndUpdate(req.user._id, 
+                            {follower: follower_arr}, {}, callback);
+                    },
+                    target: (callback) => {
+                        User.findByIdAndUpdate(req.params.id, 
+                            {following: following_arr}, {}, callback);
+                    }
+                }, (err, results) => {
+                    if (err)
+                        return next(err);
+                    res.send({success: `removed ${theUser.username} from follower`});
+                });
+            }
+        });
     } else {
         return next(new Error('Not a follower'));
     }
