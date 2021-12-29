@@ -83,7 +83,8 @@ exports.user_logIn = async (req, res, next) => {
 
 exports.user_get = (req, res, next) => {
     User.findById(req.params.id, '').populate('following').populate('follower')
-    .populate('posts').populate('comments').populate('liked_post').exec((err, theUser) => {
+    .populate('posts').populate('comments').populate('liked_post')
+    .populate('liked_comment').exec((err, theUser) => {
         if (err)
             return next(err);
         if (theUser.private) {

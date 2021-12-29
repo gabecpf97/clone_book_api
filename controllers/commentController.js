@@ -142,8 +142,66 @@ exports.comment_delete = (req, res, next) => {
 }
 
 exports.comment_like = (req, res, next) => {
+    Comment.findById(req.params.id).exec((err, theComment) => {
+        if (err)
+            return next(err);
+        if(!theComment) {
+            return next(new Error('No such comment'));
+        } else {
+            const like_arr = theComment.likes;
+            if (_getIndex(like_arr, req.user._id) > -1) {
+                return next(new Error('Already liked this comment'));
+            } else {
+                like_arr.push(req.user._id);
+                Comment.findByIdAndUpdate(req.params.id, {likes: like_arr}, {}, (err, newComment) => {
+                    if (err)
+                        return next(err);
+                    const myLikeC = req.user.liked_comment;
+                    myLikeC.push(req.params.id);
+                    User.findByIdAndUpdate(req.user._id, {liked_comment: myLikeC},
+                        {}, (err, newUser) => {
+                            if (err)
+                                return next(err);
+                            res.send({success: `${req.user.username} liked this post`});
+                        });
+                });
+            }
+        }
+    });
+}
+
+exports.comment_unlike = (req, res, next) => {
+    Comment.findById(req.params.id).exec((err, theComment) => {
+        if (err)
+            return next(err);
+        if(!theComment) {
+            return next(new Error('No such comment'));
+        } else {
+            const like_arr = theComment.likes;
+            const like_index = _getIndex(like_arr, req.user._id); 
+            if (like_index < -1) {
+                return next(new Error('Did not like this comment'));
+            } else {
+                like_arr.splice(like_index, 1);
+                Comment.findByIdAndUpdate(req.params.id, {likes: like_arr}, {}, (err, newComment) => {
+                    if (err)
+                        return next(err);
+                    const myLikeC = req.user.liked_comment;
+                    const myLike_index = _getIndex(myLikeC, req.params.id);
+                    myLikeC.splice(myLike_index);
+                    User.findByIdAndUpdate(req.user._id, {liked_comment: myLikeC},
+                        {}, (err, newUser) => {
+                            if (err)
+                                return next(err);
+                            res.send({success: `${req.user.username} unliked this post`});
+                        });    
+                });
+            }
+        }
+    });
 
 }
+
 
 function _getIndex(arr, targetID) {
     for (let i = 0; i < arr.length; i++) {

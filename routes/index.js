@@ -66,6 +66,8 @@ router.get('/media/', auth, postController.media_get);
 router.post('/post/:id/comment', auth, commentController.comment_create);
 router.get('/comment/:id', auth, commentController.comment_get);
 router.put('/comment/:id', auth, commentController.comment_update);
+router.put('/comment/:id/like', auth, commentController.comment_like);
+router.put('/comment/:id/unlike', auth, commentController.comment_unlike);
 router.delete('/comment/:id', auth, commentController.comment_delete);
 
 module.exports = router;
