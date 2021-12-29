@@ -358,6 +358,48 @@ exports.user_un_follow = (req, res, next) => {
     }
 }
 
+exports.user_approve = (req, res, next) => {
+    const target_index = _containUser(req.user.pending_follower, req.params.id);
+    if (target_index > -1) {
+        User.findById(req.params.id).exec((err, theUser) => {
+            if (err)
+                return next(err);
+            if (!theUser) {
+                return next(new Error('No such user'));
+            } else {
+                const p_array = req.user.pending_follower;
+                const f_array = req.user.follower;
+                const target_f_array = theUser.following;
+                p_array.splice(target_index, 1);
+                f_array.push(req.params.id);
+                target_f_array.push(req.user._id);
+                async.parallel({
+                    mine: (callback) => {
+                        User.findByIdAndUpdate(req.user._id, {
+                            pending_follower: p_array,
+                            follower: f_array
+                        }, {}, callback);
+                    },
+                    target: (callback) => {
+                        User.findByIdAndUpdate(req.params.id, {following: target_f_array},
+                            {}, callback);
+                    }
+                }, (err, results) => {
+                    if (err)
+                        return next(err);
+                    if (!results.mine) {
+                        return next(new Error('No such user'));
+                    } else {
+                        res.send({success: `${theUser.username} now follows you`});
+                    }
+                });
+            }
+        })
+    } else {
+        return next(new Error('No such user in your pending list'));
+    }
+}
+
 function _containUser(arr, targetID) {
     for (let i = 0; i < arr.length; i++) {
         if (arr[i]._id.equals(targetID))
