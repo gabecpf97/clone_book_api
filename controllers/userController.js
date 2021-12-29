@@ -263,11 +263,21 @@ exports.user_follow = (req, res, next) => {
                 } else {
                     if (theUser.private) {
                         const pFollower = theUser.pending_follower;
+                        const pFollowing = req.user.pending_following;
                         pFollower.push(req.user._id);
-                        User.findByIdAndUpdate(req.params.id, 
-                            {pending_follower: pFollower}, {}, (err, newUser) => {
-                                if (err)
-                                    return next(err);
+                        pFollowing.push(theUser.id);
+                        async.parallel({
+                            target: (callback) => {
+                                User.findByIdAndUpdate(req.params.id, 
+                                    {pending_follower: pFollower}, {}, callback);
+                            },
+                            mind: (callback) => {
+                                User.findByIdAndUpdate(req.user._id, 
+                                    {pending_following: pFollowing}, {}, callback);
+                            }
+                        }, (err, results) => {
+                            if (err)
+                                return next(err);
                             res.send({success: 'added to pending'});
                         });
                     } else {
@@ -312,8 +322,9 @@ exports.user_un_follow = (req, res, next) => {
             } else {
                 let f_array = [];
                 let my_array = [];
-                const my_array_index = _containUser(req.user.following, theUser._id);
+                const my_f_index = _containUser(req.user.following, theUser._id);
                 const follower_index = _containUser(theUser.follower, req.user._id);
+                const my_p__index = _containUser(req.user.pending_following, theUser._id);
                 const pending_index = _containUser(theUser.pending_follower, req.user._id);
                 if (follower_index < 0 && pending_index > 0) {
                     res.send({err: 'No pending or following this user'});
@@ -322,7 +333,7 @@ exports.user_un_follow = (req, res, next) => {
                         f_array = theUser.follower;
                         my_array = req.user.following;
                         f_array.splice(follower_index, 1);
-                        my_array.splice(my_array_index, 1);
+                        my_array.splice(my_f_index, 1);
                         async.parallel({
                             target: (callback) => {
                                 User.findByIdAndUpdate(req.params.id, {follower: f_array},
@@ -343,18 +354,37 @@ exports.user_un_follow = (req, res, next) => {
                         })
                     } else {
                         const f_array = theUser.pending_follower;
+                        const my_f_array = req.user.pending_following;
                         f_array.splice(pending_index, 1);
-                        User.findByIdAndUpdate(req.params.id, {pending_follower: f_array},
-                            {}, (err, newUser) => {
-                                if (err)
-                                    return next(err);
-                                res.send({success: 'Removed from pending'});
-                            });
+                        my_f_array.splice(my_p__index, 1);
+                        async.parallel({
+                            mine: (callback) => {
+                                User.findByIdAndUpdate(req.user._id,
+                                    {pending_following: my_f_array}, {}, callback);
+                            },
+                            target: (callback) => {
+                                User.findByIdAndUpdate(req.params.id, 
+                                    {pending_follower: f_array}, {}, callback);
+                            }
+                        }, (err, results) => {
+                            if (err)
+                                return next(err);
+                            res.send({success: 'Removed from pending'});
+                        });
                     }
                 }
             }
         });
 
+    }
+}
+
+exports.user_remove_follower = (req, res, next) => {
+    const target_index = _containUser(req.user.follower, req.params.id);
+    if (target_index > -1) {
+
+    } else {
+        return next(new Error('Not a follower'));
     }
 }
 
@@ -392,6 +422,31 @@ exports.user_approve = (req, res, next) => {
                     } else {
                         res.send({success: `${theUser.username} now follows you`});
                     }
+                });
+            }
+        })
+    } else {
+        return next(new Error('No such user in your pending list'));
+    }
+}
+
+exports.user_un_approve = (req, res, next) => {
+    const target_index = _containUser(req.user.pending_follower, req.params.id);
+    if (target_index > -1) {
+        User.findById(req.params.id).exec((err, theUser) => {
+            if (err)
+                return next(err);
+            if (!theUser) {
+                return next(new Error('No such user'));
+            } else {
+                const p_array = req.user.pending_follower;
+                p_array.splice(target_index, 1);
+                User.findByIdAndUpdate(req.user._id, {
+                    pending_follower: p_array,
+                }, {}, (err, newUser) => {
+                    if (err)
+                        return next(err);
+                    res.send({success: `${theUser.username} no longer pending as follower`});
                 });
             }
         })
