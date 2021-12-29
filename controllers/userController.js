@@ -89,7 +89,7 @@ exports.user_get = (req, res, next) => {
         if (err)
             return next(err);
         if (theUser.private) {
-            if (_isFollower(theUser.follower, req.user._id)) {
+            if (_containUser(theUser.follower, req.user._id)) {
                 res.send({user: theUser});
             } else {
                 res.send({private: true});
@@ -171,7 +171,14 @@ exports.user_update = [
                     if (!theUser) {
                         return next(new Error('No such user'));
                     } else {
-                        const user = _createNewUser('info', req.body, theUser);
+                        const user = {
+                            username: req.body.username,
+                            email: req.body.email,
+                            password: theUser.password,
+                            first_name: req.body.first_name,
+                            last_name: req.body.last_name,
+                            private: req.body.private,
+                        };
                         User.findByIdAndUpdate(req.params.id, user, {}, (err, theUser) => {
                             if (err)
                                 return next(err);
@@ -226,8 +233,12 @@ exports.user_update_password = [
                     bcrypt.hash(req.body.new_password, 10, (err, hashedPassword) => {
                         if (err)
                             return next(err);
-                        const user = _createNewUser('password', hashedPassword, theUser);
-                        res.send({user});
+                        User.findByIdAndUpdate(req.params.id, 
+                            { password: hashedPassword }, {}, (err, newUser) => {
+                            if (err)
+                                return next(err);
+                            res.send({success: 'changed password'});
+                        });
                     })
                 }
             });
@@ -235,7 +246,7 @@ exports.user_update_password = [
     }
 ]
 
-exports.user_follows = (req, res, next) => {
+exports.user_follow = (req, res, next) => {
     if (req.user._id.equals(req.params.id)) {
         return next(new Error("Can't follow yourself"));
     } else {
@@ -245,47 +256,107 @@ exports.user_follows = (req, res, next) => {
             if (!theUser) {
                 return next(new Error('No such user'));
             } else {
-                // if (_isFollower())
+                if (_containUser(theUser.follower, req.user._id)) {
+                    res.send({message: 'Alreaday Follower'});
+                } else if (_containUser(theUser.pending_follower, req.user._id)) {
+                    res.send({message: 'Already sent request'})
+                } else {
+                    if (theUser.private) {
+                        const pFollower = theUser.pending_follower;
+                        pFollower.push(req.user._id);
+                        User.findByIdAndUpdate(req.params.id, 
+                            {pending_follower: pFollower}, {}, (err, newUser) => {
+                                if (err)
+                                    return next(err);
+                            res.send({success: 'added to pending'});
+                        });
+                    } else {
+                        const target_arr = theUser.follower.push(req.user._id);
+                        const my_arr = req.user.following.push(req.params.id);
+                        async.parallel({
+                            target: (callback) => {
+                                User.findByIdAndUpdate(req.params.id, {follower: target_arr}, 
+                                    {}, callback);
+                            },
+                            mine: (callback) => {
+                                User.findByIdAndUpdate(req.user._id, {following: my_arr},
+                                    {}, callback);
+                            }
+                        }, (err, results) => {
+                            if (err)
+                                return next(err);
+                            if (!results.mine) {
+                                return next(new Error('No such user'));
+                            } else {
+                                res.send({success: 'following'});
+                            }
+                        })
+                    }
+                }
             }
         });
     }
 }
 
-function _createNewUser(from, body, theUser) {
-    let user = '';
-    if (from === 'info') {
-        user = new User({
-            username: body.username,
-            email: body.email,
-            password: theUser.password,
-            first_name: body.first_name,
-            last_name: body.last_name,
-            private: body.private,
-        });
+exports.user_un_follow = (req, res, next) => {
+    if (req.user._id.equals(req.params.id)) {
+        return next(new Error("Can't unfollow yourself"));
     } else {
-        user = new User({
-            username: theUser.username,
-            email: theUser.email,
-            password: body,
-            first_name: theUser.first_name,
-            last_name: theUser.last_name,
-            private: theUser.private,
+        User.findById(req.params.id).exec((err, theUser) => {
+            if (err)
+                return next(err);
+            if (!theUser) {
+                return next(new Error('No such user'));
+            } else {
+                const f_array = [];
+                const my_array = [];
+                const my_array_index = _containUser(req.user.following, theUser._id);
+                const follower_index = _containUser(theUser.follower, req.user._id);
+                const pending_index = _containUser(theUser.pending_follower, req.user._id);
+                if (!follower_index && !pending_index) {
+                    res.send({err: 'No pending or following this user'});
+                } else {
+                    if (follower_index) {
+                        f_array = theUser.follower.slice(follower_index, 1);
+                        my_array = req.user.following.slice(my_array_index, 1);
+                        async.parallel({
+                            target: (callback) => {
+                                User.findByIdAndUpdate(req.params.id, {follower: f_array},
+                                    {}, callback);
+                            },
+                            mine: (callback) => {
+                                User.findByIdAndUpdate(req.user._id, {following: my_array},
+                                    {}, callback);
+                            }
+                        }, (err, results) => {
+                            if (err)
+                                return next(err);
+                            if (!results.mine) {
+                                return next(new Error('No such user'));
+                            } else {
+                                res.send({success: 'unfollowed'});
+                            }
+                        })
+                    } else {
+                        f_array = theUser.pending_follower.slice(pending_index, 1);
+                        User.findByIdAndUpdate(req.params.id, {pending_follower: f_array},
+                            {}, (err, newUser) => {
+                                if (err)
+                                    return next(err);
+                                res.send({success: 'Removed from pending'});
+                            });
+                    }
+                }
+            }
         });
+
     }
-    user._id = theUser.id;
-    user.date_join = theUser.date_join;
-    user.following = theUser.following;
-    user.follower = theUser.follower;
-    user.posts = theUser.posts;
-    user.comments = theUser.comments;
-    user.liked_post = theUser.liked_post;
-    return user;
 }
 
-function _isFollower(arr, targetID) {
+function _containUser(arr, targetID) {
     for (let i = 0; i < arr.length; i++) {
         if (arr[i]._id.equals(targetID))
-        return true;
+            return i;
     }
     return false;
 }

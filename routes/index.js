@@ -18,7 +18,8 @@ router.get('/user/:id', auth, userController.user_get);
 router.delete('/user/:id', auth, userController.user_delete);
 router.put('/user/:id', auth, userController.user_update);
 router.put('/user/:id/password', auth, userController.user_update_password);
-
+router.put('/user/:id/follow', auth, userController.user_follow);
+router.put('/user/:id/unfollow', auth, userController.user_un_follow);
 
 // post api calls
 // router.post('/post', auth, postController.post_create);
