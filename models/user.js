@@ -12,6 +12,7 @@ const userSchema = new Schema({
     // icon: {type: String, required: true},
     following: [{type: Schema.Types.ObjectId, ref: 'User'}],
     follower: [{type: Schema.Types.ObjectId, ref: 'User'}],
+    pending_follower: [{type: Schema.Types.ObjectId, ref: 'User'}],
     posts: [{type: Schema.Types.ObjectId, ref: 'Post'}],
     comments: [{type: Schema.Types.ObjectId, ref: 'Comment'}],
     liked_post: [{type: Schema.Types.ObjectId, ref: 'Post'}],
