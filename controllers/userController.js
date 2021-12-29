@@ -68,15 +68,15 @@ exports.user_create = [
 ]
 
 exports.user_logIn = async (req, res, next) => {
-    passport.authenticate('local', {session: false}, (err, theUser, info) => {
-        if (err || !theUser) {
+    passport.authenticate('local', {session: false}, (err, user, info) => {
+        if (err || !user) {
             return res.send({ message: info.message });
         }
-        req.login(theUser, {session: false}, err => {
+        req.login(user, {session: false}, err => {
             if (err)
                 return next(err);
-            const token = jwt.sign({theUser}, process.env.S_KEY);
-            return res.send({token, user: theUser});
+            const token = jwt.sign({user}, process.env.S_KEY);
+            return res.send({token, user});
         });
     })(req, res, next);
 }

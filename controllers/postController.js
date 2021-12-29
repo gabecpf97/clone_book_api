@@ -61,23 +61,59 @@ exports.post_get = (req, res, next) => {
     });
 }
 
-exports.post_get_media = (req, res, next) => {
-    Post.findById(req.params.id).populate('user')
-    .populate('likes').populate('comments').exec((err, thePost) => {
+exports.post_update = [
+    body('message', "Message must not be empty").trim().isLength({min: 0}).escape(),
+    (req, res, next) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.send({err: errors.array()});
+        } else {
+            if (req.fileValidationError) {
+                return next(new Error(req.fileValidationError));
+            } else {
+                Post.findById(req.params.id).exec((err, thePost) => {
+                    if (err)
+                        return next(err);
+                    if (!thePost) {
+                        return next(new Error('No such post'));
+                    } else {
+                        const update = { message: req.body.message };
+                        if (req.file)
+                            update.media = req.file.path;
+                        Post.findByIdAndUpdate(req.params.id, update, {}, (err, newPost) => {
+                            if (err)
+                                return next(err);
+                            res.send({success: 'post updated'});
+                        })
+                    }
+                });
+            }
+        }
+    }
+]
+
+exports.post_delete = (req, res, next) => {
+    Post.findById(req.params.id).exec((err, thePost) => {
         if (err)
             return next(err);
         if (!thePost) {
             return next(new Error('No such post'));
         } else {
-            if (thePost.media.length < 1)
-                return next(new Error('No media'));
-            res.sendFile(path.join(__dirname, '../', thePost.media[0]));
+            console.log(req.user);
+            if (thePost.user.equals(req.user._id)) {
+                Post.findByIdAndRemove(req.params.id, err => {
+                    if (err)
+                        return next(err);
+                    res.send({success: 'deleted post'});
+                })
+            } else {
+                res.send({err: 'Not authorize to delete this post'});
+            }
         }
-    });
+    })
 }
 
 exports.media_get = (req, res, next) => {
-    // res.send(`${req.query.name}`);
     const imagePath = path.join(__dirname, '../', req.query.name);
     if (fs.access(imagePath, fs.F_OK, (err) => {
         if (err)

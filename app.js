@@ -45,6 +45,7 @@ passport.use(new JWTStrategy({
     secretOrKey: process.env.S_KEY,
   },
   (jwtPayload, cb) => {
+    console.log(jwtPayload);
     User.findById(jwtPayload.user._id, (err, user) => {
       if (err)
         return cb(err);
