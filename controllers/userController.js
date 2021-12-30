@@ -94,7 +94,8 @@ exports.user_get = (req, res, next) => {
         if (err)
             return next(err);
         if (theUser.private) {
-            if (_containUser(theUser.follower, req.user._id) > -1) {
+            if (_containUser(theUser.follower, req.user._id) > -1 || 
+                    theUser._id.equals(req.user._id)) {
                 res.send({user: theUser});
             } else {
                 res.send({private: true});

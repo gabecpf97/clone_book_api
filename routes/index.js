@@ -38,6 +38,8 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'This is backend' });
 });
 
+// make sure all user field only container info it needs !!!
+
 // user api calls
 router.post('/user/create', upload.single('image'), userController.user_create);
 router.post('/user/login', userController.user_logIn);
@@ -52,6 +54,7 @@ router.put('/user/:id/unapprove', auth, userController.user_un_approve);
 router.put('/user/:id/remove_follower', auth, userController.user_remove_follower);
 
 // post api calls
+router.get('/all_post', auth, postController.post_get_timeline);
 router.post('/post/create', auth, upload.single('image'), postController.post_create);
 router.get('/post/:id', auth, postController.post_get);
 router.put('/post/:id', auth, upload.single('image'), postController.post_update);

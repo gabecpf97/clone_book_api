@@ -1,3 +1,4 @@
+const async = require('async');
 const { body, validationResult } = require('express-validator');
 const fs = require('fs');
 const path = require('path');
@@ -55,6 +56,27 @@ exports.post_get = (req, res, next) => {
             }
             res.send({post});
         }
+    });
+}
+
+exports.post_get_timeline = (req, res, next) => {
+    async.map(req.user.following, (user, callback) => {
+        User.findById(user._id).populate('posts').exec((err, theUser) => {
+            if (err)
+                return callback(err);
+            callback(null, theUser.posts);
+        });
+    }, (err, results) => {
+        if (err)
+            return next(err);
+        const all_posts = [];
+        results.forEach(post_arr => {
+            post_arr.forEach(post => {
+                all_posts.push(post);
+            })
+        })
+        console.log(all_posts.sort((a, b) => (a.date < b.date) ? 1: -1)); //? working?
+        res.send({all_posts});
     });
 }
 
