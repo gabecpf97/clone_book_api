@@ -75,8 +75,38 @@ exports.post_get_timeline = (req, res, next) => {
                 all_posts.push(post);
             })
         })
-        console.log(all_posts.sort((a, b) => (a.date < b.date) ? 1: -1)); //? working?
-        res.send({all_posts});
+        // res.send({all_posts});
+        async.map(all_posts, (myPost, cb) => {
+            Post.findById(myPost._id).populate('user').exec(cb);
+        }, (err, result_arr) => {
+            if(err)
+                return next(err);
+            res.send({all_posts: result_arr});
+        })
+    });
+}
+
+exports.get_user_post = (req, res, next) => {
+    User.findById(req.params.id).exec((err, theUser) => {
+        if (err)
+            return next(err);
+        if (!theUser) {
+            return next(new Error('No such user'));
+        } else {
+            if (_checkLiked(theUser.follower, req.user._id) < 0 && 
+                !theUser.equals(req.user._id)) {
+                return next(new Error('Not following the user'));
+            } else {
+                async.map(theUser.posts, (post, callback) => {
+                    Post.findById(post._id).populate('user')
+                    .populate('likes').populate('comments').exec(callback);   
+                }, (err, results) => {
+                    if (err)
+                        return next(err);
+                    res.send({results});
+                })
+            }
+        }
     });
 }
 

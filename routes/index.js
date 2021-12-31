@@ -41,7 +41,7 @@ router.get('/', function(req, res, next) {
 // make sure all user field only container info it needs !!!
 
 // user api calls
-router.post('/user/create', upload.single('image'), userController.user_create);
+router.post('/user/create', upload.single('icon'), userController.user_create);
 router.post('/user/login', userController.user_logIn);
 router.get('/user/:id', auth, userController.user_get);
 router.delete('/user/:id', auth, userController.user_delete);
@@ -52,6 +52,8 @@ router.put('/user/:id/unfollow', auth, userController.user_un_follow);
 router.put('/user/:id/approve', auth, userController.user_approve);
 router.put('/user/:id/unapprove', auth, userController.user_un_approve);
 router.put('/user/:id/remove_follower', auth, userController.user_remove_follower);
+router.get('/user/:id/post', auth, postController.get_user_post);
+router.get('/user/:id/comment', auth, commentController.get_user_comment);
 
 // post api calls
 router.get('/all_post', auth, postController.post_get_timeline);
@@ -63,7 +65,7 @@ router.put('/post/:id/unlike', auth, postController.post_unlike);
 router.delete('/post/:id', auth, postController.post_delete);
 
 // get media
-router.get('/media/', auth, postController.media_get);
+router.get('/media/', postController.media_get);
 // get media
 // http://localhost:3000/media/?name=uploads\\2021-12-29T06-50-27.997Ztest_post_1.jpg
 

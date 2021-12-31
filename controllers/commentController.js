@@ -73,6 +73,30 @@ exports.comment_get = (req, res, next) => {
     });
 }
 
+exports.get_user_comment = (req, res, next) => {
+    User.findById(req.params.id).exec((err, theUser) => {
+        if (err)
+            return next(err);
+        if (!theUser) {
+            return next(new Error('No such user'));
+        } else {
+            if (_getIndex(theUser.follower, req.user._id) < 0 && 
+                !theUser.equals(req.user._id)) {
+                return next(new Error('Not following the user'));
+            } else {
+                async.map(theUser.comments, (comment, callback) => {
+                    Comment.findById(comment._id).populate('user')
+                    .populate('likes').populate('comments').exec(callback);   
+                }, (err, results) => {
+                    if (err)
+                        return next(err);
+                    res.send({results: _filterUserInfo(results)});
+                })
+            }
+        }
+    });
+}
+
 exports.comment_update = [
     body('comment', 'Comment must not be empty').trim().isLength({min: 1}).escape(),
     (req, res, next) => {
@@ -231,6 +255,17 @@ function _filterInfo(arr) {
         arr[i] = {
             _id: arr[i]._id,
             username: arr[i].username,
+        }
+    }
+    return arr;
+}
+
+function _filterUserInfo(arr) {
+    for (let i = 0; i< arr.length; i++) {
+        arr[i].user = {
+            _id: arr[i].user._id,
+            username: arr[i].user.username,
+            icon: arr[i].user.icon,
         }
     }
     return arr;

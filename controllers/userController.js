@@ -76,7 +76,7 @@ exports.user_create = [
 exports.user_logIn = async (req, res, next) => {
     passport.authenticate('local', {session: false}, (err, user, info) => {
         if (err || !user) {
-            return res.send({ message: info.message });
+            return res.send({ err: info.message });
         }
         req.login(user, {session: false}, err => {
             if (err)
