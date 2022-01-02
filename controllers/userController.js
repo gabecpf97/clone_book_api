@@ -93,15 +93,24 @@ exports.user_get = (req, res, next) => {
     .populate('liked_comment').exec((err, theUser) => {
         if (err)
             return next(err);
-        if (theUser.private) {
-            if (_containUser(theUser.follower, req.user._id) > -1 || 
-                    theUser._id.equals(req.user._id)) {
-                res.send({user: theUser});
-            } else {
-                res.send({private: true});
-            }
+        if (!theUser) {
+            return next(new Error('No such user'));
         } else {
-            res.send({user: theUser});
+            const user_f = theUser;
+            user_f.follower = _filterUser(theUser.follower);
+            user_f.following = _filterUser(theUser.following);
+            if (theUser.private) {
+                if (_containUser(theUser.follower, req.user._id) > -1 || 
+                        theUser._id.equals(req.user._id)) {
+                    res.send({user: user_f});
+                } else if (_containUser(theUser.pending_follower, req.user._id) > -1) {
+                    res.send({username: theUser.username, pending: true, private: true});
+                } else {
+                    res.send({username: theUser.username, private: true});
+                }
+            } else {
+                res.send({user: user_f});
+            }
         }
     });
 }
@@ -297,7 +306,7 @@ exports.user_follow = (req, res, next) => {
                         }, (err, results) => {
                             if (err)
                                 return next(err);
-                            res.send({success: 'added to pending'});
+                            res.send({pending: true });
                         });
                     } else {
                         const target_arr = theUser.follower
@@ -388,7 +397,7 @@ exports.user_un_follow = (req, res, next) => {
                         }, (err, results) => {
                             if (err)
                                 return next(err);
-                            res.send({success: 'Removed from pending'});
+                            res.send({pending: false});
                         });
                     }
                 }
@@ -511,4 +520,15 @@ function _containUser(arr, targetID) {
             return i;
     }
     return -1;
+}
+
+function _filterUser(arr) {
+    for (let i = 0; i < arr.length; i++) {
+        arr[i] = {
+            _id: arr[i]._id,
+            username: arr[i].username,
+            icon: arr[i].icon 
+        }
+    }
+    return arr;
 }

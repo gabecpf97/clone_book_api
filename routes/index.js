@@ -66,8 +66,6 @@ router.delete('/post/:id', auth, postController.post_delete);
 
 // get media
 router.get('/media/', postController.media_get);
-// get media
-// http://localhost:3000/media/?name=uploads\\2021-12-29T06-50-27.997Ztest_post_1.jpg
 
 // comment api calls
 router.post('/post/:id/comment', auth, upload.single('image'), commentController.comment_create);
