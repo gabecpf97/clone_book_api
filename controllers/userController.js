@@ -88,28 +88,24 @@ exports.user_logIn = async (req, res, next) => {
 }
 
 exports.user_get = (req, res, next) => {
-    User.findById(req.params.id, '').populate('following').populate('follower')
-    .populate('posts').populate('comments').populate('liked_post')
-    .populate('liked_comment').exec((err, theUser) => {
+    User.findById(req.params.id, '').populate('posts').populate('comments')
+    .populate('liked_post').populate('liked_comment').exec((err, theUser) => {
         if (err)
             return next(err);
         if (!theUser) {
             return next(new Error('No such user'));
         } else {
-            const user_f = theUser;
-            user_f.follower = _filterUser(theUser.follower);
-            user_f.following = _filterUser(theUser.following);
             if (theUser.private) {
                 if (_containUser(theUser.follower, req.user._id) > -1 || 
                         theUser._id.equals(req.user._id)) {
-                    res.send({user: user_f});
+                    res.send({user: theUser});
                 } else if (_containUser(theUser.pending_follower, req.user._id) > -1) {
                     res.send({username: theUser.username, pending: true, private: true});
                 } else {
                     res.send({username: theUser.username, private: true});
                 }
             } else {
-                res.send({user: user_f});
+                res.send({user: theUser});
             }
         }
     });
@@ -355,7 +351,7 @@ exports.user_un_follow = (req, res, next) => {
                 const my_p__index = _containUser(req.user.pending_following, theUser._id);
                 const pending_index = _containUser(theUser.pending_follower, req.user._id);
                 if (follower_index < 0 && pending_index > 0) {
-                    res.send({err: 'No pending or following this user'});
+                    return next(new Error('No pending or following this user'));
                 } else {
                     if (follower_index > -1) {
                         f_array = theUser.follower;

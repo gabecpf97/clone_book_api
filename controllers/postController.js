@@ -163,7 +163,7 @@ exports.post_delete = (req, res, next) => {
                     res.send({success: 'deleted post'});
                 })
             } else {
-                res.send({err: 'Not authorize to delete this post'});
+                return next(new Error('Not authorize to delete this post'));
             }
         }
     })
