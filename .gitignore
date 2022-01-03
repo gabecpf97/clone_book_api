@@ -1,4 +1,5 @@
 .env
+uploads
 node_modules
 populateDB.js
 icon.jpg

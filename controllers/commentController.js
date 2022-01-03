@@ -58,16 +58,14 @@ exports.comment_create = [
 ]
 
 exports.comment_get = (req, res, next) => {
-    Comment.findById(req.params.id).populate('user')
-    .populate('likes').populate('comments').exec((err, theComment) => {
+    Comment.findById(req.params.id).populate('user', 'username icon')
+    .populate('likes', 'username icon').populate('comments', 'username icon').exec((err, theComment) => {
         if (err)
             return next(err);
         if (!theComment) {
             return next(new Error('No such comment'));
         } else {
             const comment = theComment;
-            comment.user = { _id: comment.user._id, username: comment.user.username };
-            comment.likes = _filterInfo(comment.likes);
             res.send({comment});
         }
     });
@@ -248,16 +246,6 @@ function _getIndex(arr, targetID) {
             return i;
     }
     return -1;
-}
-
-function _filterInfo(arr) {
-    for (let i = 0; i < arr.length; i++) {
-        arr[i] = {
-            _id: arr[i]._id,
-            username: arr[i].username,
-        }
-    }
-    return arr;
 }
 
 function _filterUserInfo(arr) {

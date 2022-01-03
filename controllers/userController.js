@@ -40,6 +40,7 @@ exports.user_create = [
     body('first_name', 'First name must not be empty').trim().isLength({min: 1}).escape(),
     body('last_name', 'Last name must not be empty').trim().isLength({min: 1}).escape(),
     (req, res, next) => {
+        console.log(req.body);
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             res.send({errors: errors.array()});
@@ -76,7 +77,7 @@ exports.user_create = [
 exports.user_logIn = async (req, res, next) => {
     passport.authenticate('local', {session: false}, (err, user, info) => {
         if (err || !user) {
-            return res.send({ err: info.message });
+            return next(new Error(info.message));
         }
         req.login(user, {session: false}, err => {
             if (err)
@@ -107,6 +108,19 @@ exports.user_get = (req, res, next) => {
             } else {
                 res.send({user: theUser});
             }
+        }
+    });
+}
+
+exports.userlist_get = (req, res, next) => {
+    User.findById(req.params.id).populate(req.query.type, 'username icon')
+    .exec((err, theUser) => {
+        if (err)
+            return next(err);
+        if (!theUser) {
+            return next(new Error('No such user'));
+        } else {
+            res.send({user_list: theUser[req.query.type]});
         }
     });
 }
@@ -516,15 +530,4 @@ function _containUser(arr, targetID) {
             return i;
     }
     return -1;
-}
-
-function _filterUser(arr) {
-    for (let i = 0; i < arr.length; i++) {
-        arr[i] = {
-            _id: arr[i]._id,
-            username: arr[i].username,
-            icon: arr[i].icon 
-        }
-    }
-    return arr;
 }
