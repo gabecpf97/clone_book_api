@@ -89,7 +89,7 @@ exports.get_user_post = (req, res, next) => {
             return next(new Error('No such user'));
         } else {
             if (_checkLiked(theUser.follower, req.user._id) < 0 && 
-                !theUser.equals(req.user._id)) {
+                !theUser.equals(req.user._id) && theUser.private) {
                 return next(new Error('Not following the user'));
             } else {
                 async.map(theUser.posts, (post, callback) => {

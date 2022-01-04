@@ -96,14 +96,21 @@ exports.user_get = (req, res, next) => {
         if (!theUser) {
             return next(new Error('No such user'));
         } else {
-            if (theUser.private) {
-                if (_containUser(theUser.follower, req.user._id) > -1 || 
-                        theUser._id.equals(req.user._id)) {
-                    res.send({user: theUser});
-                } else if (_containUser(theUser.pending_follower, req.user._id) > -1) {
-                    res.send({username: theUser.username, pending: true, private: true});
+            if (_containUser(theUser.follower, req.user._id) > -1 || 
+                    theUser._id.equals(req.user._id)) {
+                res.send({user: theUser, follow: true});
+            } else if (theUser.private) {
+                const p_user = {
+                    username: theUser.username,
+                    icon: theUser.icon,
+                    follower: theUser.follower,
+                    following: theUser.following,
+                    _id: theUser._id
+                }
+                if (_containUser(theUser.pending_follower, req.user._id) > -1) {
+                    res.send({p_user, pending: true});
                 } else {
-                    res.send({username: theUser.username, private: true});
+                    res.send({p_user, private: true});
                 }
             } else {
                 res.send({user: theUser});
@@ -509,14 +516,24 @@ exports.user_un_approve = (req, res, next) => {
                 return next(new Error('No such user'));
             } else {
                 const p_array = req.user.pending_follower;
+                const p_f_arr = theUser.pending_following;
+                const p_f_index = _containUser(theUser.pending_following, req.user._id);
                 p_array.splice(target_index, 1);
-                User.findByIdAndUpdate(req.user._id, {
-                    pending_follower: p_array,
-                }, {}, (err, newUser) => {
+                p_f_arr.splice(p_f_index, 1);
+                async.parallel({
+                    mine: (callback) => {
+                        User.findByIdAndUpdate(req.user._id, 
+                            {pending_follower: p_array,}, {}, callback);
+                    },
+                    target: (callback) => {
+                        User.findByIdAndUpdate(req.params.id, 
+                            {pending_following: p_f_arr}, {}, callback);
+                    }
+                }, (err, results) => {
                     if (err)
                         return next(err);
                     res.send({success: `${theUser.username} no longer pending as follower`});
-                });
+                })
             }
         })
     } else {
