@@ -302,7 +302,7 @@ exports.user_follow = (req, res, next) => {
                 return next(new Error('No such user'));
             } else {
                 if (_containUser(theUser.follower, req.user._id) > -1) {
-                    res.send({message: 'Alreaday Follower'});
+                    res.send({message: 'Already Following'});
                 } else if (_containUser(theUser.pending_follower, req.user._id) > -1) {
                     res.send({message: 'Already sent request'})
                 } else {
@@ -414,7 +414,7 @@ exports.user_un_follow = (req, res, next) => {
                         }, (err, results) => {
                             if (err)
                                 return next(err);
-                            res.send({pending: false});
+                            res.send({success: false});
                         });
                     }
                 }
@@ -532,7 +532,7 @@ exports.user_un_approve = (req, res, next) => {
                 }, (err, results) => {
                     if (err)
                         return next(err);
-                    res.send({success: `${theUser.username} no longer pending as follower`});
+                    res.send({unapprove: `${theUser.username} no longer pending as follower`});
                 })
             }
         })
