@@ -32,7 +32,7 @@ exports.post_create = [
                         {posts: post_array}, {}, (err, theUser) => {
                             if (err)
                                 return next(err);
-                            res.send({post});
+                            res.send({id: post._id});
                     });
                 });
             }
@@ -50,6 +50,19 @@ exports.post_get = (req, res, next) => {
         } else {
             const post = thePost;
             res.send({post});
+        }
+    });
+}
+
+exports.post_get_likes = (req, res, next) => {
+    Post.findById(req.params.id).populate('likes', 'username icon').exec((err, thePost) => {
+        if (err)
+            return next(err);
+        if (!thePost) {
+            return next(new Error('No such post'));
+        } else {
+            const status = _checkLiked(thePost.likes, req.user._id) > -1;
+            res.send({likes: thePost.likes, status});
         }
     });
 }
@@ -174,8 +187,19 @@ exports.post_like = (req, res, next) => {
             const like_exist = _checkLiked(thePost.likes, req.user._id);
             if (like_exist < 0) {
                 const like_arr = thePost.likes;
+                const my_arr = req.user.liked_post;
+                my_arr.push(req.params.id);
                 like_arr.push(req.user._id);
-                Post.findByIdAndUpdate(req.params.id, {likes: like_arr}, {}, (err, newPost) => {
+                async.parallel({
+                    mine: (callback) => {
+                        User.findByIdAndUpdate(req.user._id, {liked_post: my_arr}, 
+                            {}, callback);
+                    },
+                    target: (callback) => {
+                        Post.findByIdAndUpdate(req.params.id, {likes: like_arr}, 
+                            {}, callback);
+                    }
+                }, (err, results) => {
                     if (err)
                         return next(err);
                     res.send({success: 'Liked post'});
@@ -197,11 +221,23 @@ exports.post_unlike = (req, res, next) => {
             const like_exist = _checkLiked(thePost.likes, req.user._id);
             if (like_exist > -1) {
                 const like_arr = thePost.likes;
+                const my_index = _checkLiked(req.user.liked_post, req.params.id);
+                const my_arr = req.user.liked_post;
                 like_arr.splice(like_exist, 1);
-                Post.findByIdAndUpdate(req.params.id, {likes: like_arr}, {}, (err, newPost) => {
+                my_arr.splice(my_index, 1);
+                async.parallel({
+                    mine: (callback) => {
+                        User.findByIdAndUpdate(req.user._id, {liked_post: my_arr}, 
+                            {}, callback);
+                    },
+                    target: (callback) => {
+                        Post.findByIdAndUpdate(req.params.id, {likes: like_arr}, 
+                            {}, callback);
+                    }
+                }, (err, results) => {
                     if (err)
                         return next(err);
-                    res.send({success: 'Unliked post'});
+                    res.send({success: 'unliked post'});
                 });
             } else {
                 return next(new Error(`${req.user.username} did not liked this post`));
