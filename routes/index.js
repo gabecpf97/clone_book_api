@@ -55,6 +55,8 @@ router.put('/user/:id/unapprove', auth, userController.user_un_approve);
 router.put('/user/:id/remove_follower', auth, userController.user_remove_follower);
 router.get('/user/:id/post', auth, postController.get_user_post);
 router.get('/user/:id/comment', auth, commentController.get_user_comment);
+router.get('/user/:id/liked_post', auth, postController.get_user_liked_post);
+router.get('/user/:id/liked_comment', auth, commentController.get_user_liked_comment);
 
 // post api calls
 router.get('/all_post', auth, postController.post_get_timeline);

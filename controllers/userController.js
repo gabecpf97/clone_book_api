@@ -89,8 +89,7 @@ exports.user_logIn = async (req, res, next) => {
 }
 
 exports.user_get = (req, res, next) => {
-    User.findById(req.params.id, '').populate('posts').populate('comments')
-    .populate('liked_post').populate('liked_comment').exec((err, theUser) => {
+    User.findById(req.params.id).exec((err, theUser) => {
         if (err)
             return next(err);
         if (!theUser) {

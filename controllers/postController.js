@@ -106,8 +106,8 @@ exports.get_user_post = (req, res, next) => {
                 return next(new Error('Not following the user'));
             } else {
                 async.map(theUser.posts, (post, callback) => {
-                    Post.findById(post._id).populate('user')
-                    .populate('likes').populate('comments').exec(callback);   
+                    Post.findById(post._id).populate('user', 'username icon')
+                    .populate('likes', 'username icon').exec(callback);   
                 }, (err, results) => {
                     if (err)
                         return next(err);
@@ -116,6 +116,30 @@ exports.get_user_post = (req, res, next) => {
             }
         }
     });
+}
+
+exports.get_user_liked_post = (req, res, next) => {
+    User.findById(req.params.id).exec((err, theUser) => {
+        if (err)
+            return next(err);
+        if (!theUser) {
+            return next(new Error('No such user'));
+        } else {
+            if (_checkLiked(theUser.follower, req.user._id) < 0 && 
+                !theUser.equals(req.user._id) && theUser.private) {
+                return next(new Error('Not following the user'));
+            } else {
+                async.map(theUser.liked_post, (post, callback) => {
+                    Post.findById(post._id).populate('user', 'username, icon')
+                    .populate('likes', 'username icon').exec(callback);   
+                }, (err, results) => {
+                    if (err)
+                        return next(err);
+                    res.send({results});
+                })
+            }
+        }
+    })
 }
 
 exports.post_update = [
