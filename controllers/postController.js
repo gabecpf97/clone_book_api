@@ -42,7 +42,7 @@ exports.post_create = [
 
 exports.post_get = (req, res, next) => {
     Post.findById(req.params.id).populate('user', 'username icon')
-    .populate('likes', 'username icon').populate('comments', 'username icon').exec((err, thePost) => {
+    .populate('likes', 'username icon').populate('comments').exec((err, thePost) => {
         if (err)
             return next(err);
         if (!thePost) {

@@ -75,7 +75,9 @@ router.get('/media/', postController.media_get);
 // comment api calls
 router.post('/post/:id/comment', auth, upload.single('image'), commentController.comment_create);
 router.get('/comment/:id', auth, commentController.comment_get);
+router.get('/comment_list/:id', auth, commentController.comment_get_list);
 router.put('/comment/:id', auth, commentController.comment_update);
+router.get('/comment/:id/likes', auth, commentController.comment_get_likes);
 router.put('/comment/:id/like', auth, commentController.comment_like);
 router.put('/comment/:id/unlike', auth, commentController.comment_unlike);
 router.delete('/comment/:id', auth, commentController.comment_delete);

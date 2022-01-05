@@ -59,7 +59,7 @@ exports.comment_create = [
 
 exports.comment_get = (req, res, next) => {
     Comment.findById(req.params.id).populate('user', 'username icon')
-    .populate('likes', 'username icon').populate('comments', 'username icon').exec((err, theComment) => {
+    .populate('likes', 'username icon').exec((err, theComment) => {
         if (err)
             return next(err);
         if (!theComment) {
@@ -69,6 +69,38 @@ exports.comment_get = (req, res, next) => {
             res.send({comment});
         }
     });
+}
+
+exports.comment_get_list = (req, res, next) => {
+    Post.findById(req.params.id).exec((err, thePost) => {
+        if (err)
+            return next(err);
+        if (!thePost) {
+            return next(new Error('No such post'));
+        } else {
+            async.map(thePost.comments, (comment, callback) => {
+                Comment.findById(comment).populate('user', 'username, icon')
+                .populate('likes', 'username icon').exec(callback);
+            }, (err, results) => {
+                if (err)
+                    return next(err);
+                res.send({comments: results});
+            });
+        }
+    });
+}
+
+exports.comment_get_likes = (req, res, next) => {
+    Comment.findById(req.params.id).populate('likes', 'username icon').exec((err, theComment) => {
+        if (err)
+            return next(err);
+        if (!theComment) {
+            return next(new Error('No such comment'));
+        } else {
+            const status = _getIndex(theComment.likes, req.user._id) > -1;
+            res.send({likes: theComment.likes, status});
+        }
+    })
 }
 
 exports.get_user_comment = (req, res, next) => {
@@ -224,7 +256,7 @@ exports.comment_like = (req, res, next) => {
                         {}, (err, newUser) => {
                             if (err)
                                 return next(err);
-                            res.send({success: `${req.user.username} liked this post`});
+                            res.send({success: `${req.user.username} liked this comment`});
                         });
                 });
             }
