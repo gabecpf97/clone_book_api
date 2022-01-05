@@ -61,7 +61,8 @@ router.get('/all_post', auth, postController.post_get_timeline);
 router.post('/post/create', auth, upload.single('image'), postController.post_create);
 router.get('/post/:id', auth, postController.post_get);
 router.get('/post/:id/likes', auth, postController.post_get_likes);
-router.put('/post/:id', auth, upload.single('image'), postController.post_update);
+// Do not allow user to update post
+// router.put('/post/:id', auth, upload.single('image'), postController.post_update);
 router.put('/post/:id/like', auth, postController.post_like);
 router.put('/post/:id/unlike', auth, postController.post_unlike);
 router.delete('/post/:id', auth, postController.post_delete);

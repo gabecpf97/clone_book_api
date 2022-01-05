@@ -163,9 +163,34 @@ exports.post_delete = (req, res, next) => {
         if (!thePost) {
             return next(new Error('No such post'));
         } else {
-            console.log(req.user);
             if (thePost.user.equals(req.user._id)) {
-                Post.findByIdAndRemove(req.params.id, err => {
+                const my_post = req.user.posts;
+                my_post.splice(_checkLiked(req.user.posts, req.params.id), 1);
+                async.parallel({
+                    post: (callback) => {
+                        Post.findByIdAndRemove(req.params.id, callback);
+                    },
+                    user: (callback) => {
+                        User.findByIdAndUpdate(req.user._id, {posts: my_post},
+                            {}, callback);
+                    },
+                    liked_user: (callback) => {
+                        async.map(thePost.likes, (user, cb) => {
+                            User.findById(user).exec((err, theUser) => {
+                                if (err)
+                                    return next(err);
+                                if (!theUser) {
+                                    return next(new Error('No such user'));
+                                } else {
+                                    const theLikes = theUser.liked_post;
+                                    theLikes.splice(_checkLiked(theLikes, req.params.id), 1);
+                                    User.findByIdAndUpdate(user, {liked_post: theLikes}, 
+                                        {}, cb);
+                                }
+                            });
+                        }, callback);
+                    }
+                }, (err, results) => {
                     if (err)
                         return next(err);
                     res.send({success: 'deleted post'});
