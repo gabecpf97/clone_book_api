@@ -130,7 +130,7 @@ exports.get_user_liked_post = (req, res, next) => {
                 return next(new Error('Not following the user'));
             } else {
                 async.map(theUser.liked_post, (post, callback) => {
-                    Post.findById(post._id).populate('user', 'username, icon')
+                    Post.findById(post._id).populate('user', 'username icon')
                     .populate('likes', 'username icon').exec(callback);   
                 }, (err, results) => {
                     if (err)

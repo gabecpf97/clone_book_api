@@ -79,8 +79,9 @@ exports.comment_get_list = (req, res, next) => {
             return next(new Error('No such post'));
         } else {
             async.map(thePost.comments, (comment, callback) => {
-                Comment.findById(comment).populate('user', 'username, icon')
-                .populate('likes', 'username icon').exec(callback);
+                Comment.findById(comment).populate('user', 'username icon')
+                .populate('likes', 'username icon').populate('belong', 'user')
+                .exec(callback);
             }, (err, results) => {
                 if (err)
                     return next(err);
@@ -115,12 +116,12 @@ exports.get_user_comment = (req, res, next) => {
                 return next(new Error('Not following the user'));
             } else {
                 async.map(theUser.comments, (comment, callback) => {
-                    Comment.findById(comment._id).populate('user', 'username, icon')
-                    .populate('likes', 'username icon').exec(callback);   
+                    Comment.findById(comment._id).populate('user', 'username icon')
+                    .populate('likes', 'username icon').populate('belong', 'user').exec(callback);   
                 }, (err, results) => {
                     if (err)
                         return next(err);
-                    res.send({results: _filterUserInfo(results)});
+                    res.send({results});
                 })
             }
         }
@@ -139,8 +140,8 @@ exports.get_user_liked_comment = (req, res, next) => {
                 return next(new Error('Not following the user'));
             } else {
                 async.map(theUser.liked_comment, (comment, callback) => {
-                    Comment.findById(comment._id).populate('user', 'username, icon')
-                    .populate('likes', 'username icon').exec(callback);   
+                    Comment.findById(comment._id).populate('user', 'username icon')
+                    .populate('likes', 'username icon').populate('belong', 'user').exec(callback);   
                 }, (err, results) => {
                     if (err)
                         return next(err);
@@ -220,6 +221,22 @@ exports.comment_delete = (req, res, next) => {
                         comment_arr.splice(_getIndex(req.user.comments, req.params.id));
                         User.findByIdAndUpdate(req.user._id, 
                             {comments: comment_arr}, {}, callback);
+                    },
+                    liked: (callback) => {
+                        async.map(theComment.likes, (liked_user, cb) => {
+                            User.findById(liked_user).exec((err, theUser) => {
+                                if (err)
+                                    return next(err);
+                                if (!theUser) {
+                                    return next(new Error('No such user'));
+                                } else {
+                                    const liked_c_arr = theUser.liked_comment;
+                                    liked_c_arr.splice(_getIndex(liked_c_arr, req.params.id));
+                                    User.findByIdAndUpdate(liked_user, {liked_comment: liked_c_arr},
+                                        {}, cb);
+                                }
+                            });
+                        }, callback);
                     }
                 }, (err, results) => {
                     if (err)
@@ -303,15 +320,4 @@ function _getIndex(arr, targetID) {
             return i;
     }
     return -1;
-}
-
-function _filterUserInfo(arr) {
-    for (let i = 0; i< arr.length; i++) {
-        arr[i].user = {
-            _id: arr[i].user._id,
-            username: arr[i].user.username,
-            icon: arr[i].user.icon,
-        }
-    }
-    return arr;
 }

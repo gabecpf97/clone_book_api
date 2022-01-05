@@ -8,7 +8,7 @@ const commentSchema = new Schema({
     belong: {type: Schema.Types.ObjectId, ref: 'Post', required: true},
     media: {type: String},
     likes: [{type: Schema.Types.ObjectId, ref: 'User'}],
-    comments: [{type: Schema.Types.ObjectId, ref: 'Comment'}],
+    // comments: [{type: Schema.Types.ObjectId, ref: 'Comment'}],
 });
 
 module.exports = mongoose.model('Comment', commentSchema);
