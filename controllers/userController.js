@@ -4,6 +4,7 @@ const { body, check, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const User = require('../models/user');
+const fs = require('fs');
 
 exports.user_create = [
     body('username', 'Username must be longer than 4 letter').trim().isLength({min: 4}).escape(),
@@ -148,11 +149,95 @@ exports.user_delete = [
                         if (!pass)
                             return next(new Error('Wrong password'));
                         else {
-                            User.findByIdAndRemove(req.params.id, err => {
+                            async.parallel({
+                                follower: (callback) => {
+                                    async.map(theUser.follower, (follower, cb) => {
+                                        User.findById(follower).exec((err, thisUser) => {
+                                            if (err)
+                                                return next(err);
+                                            if (!thisUser) {
+                                                return next(new Error('No such user'));
+                                            } else {
+                                                const following_arr = thisUser.following;
+                                                following_arr.splice(_containUser(following_arr, req.params.id), 1);
+                                                User.findByIdAndUpdate(thisUser._id, {following: following_arr}, 
+                                                    {}, cb);
+                                            }
+                                        });
+                                    }, callback);
+                                },
+                                following: (callback) => {
+                                    async.map(theUser.following, (following, cb) => {
+                                        User.findById(following).exec((err, thisUser) => {
+                                            if (err)
+                                                return next(err);
+                                            if (!thisUser) {
+                                                return next(new Error('No such user'));
+                                            } else {
+                                                const follower_arr = thisUser.follower;
+                                                follower_arr.splice(_containUser(follower_arr, req.params.id), 1);
+                                                User.findByIdAndUpdate(thisUser._id, {follower: follower_arr}, 
+                                                    {}, cb);
+                                            }
+                                        });
+                                    }, callback);
+                                },
+                                pending_follower: (callback) => {
+                                    async.map(theUser.pending_follower, (follower, cb) => {
+                                        User.findById(follower).exec((err, thisUser) => {
+                                            if (err)
+                                                return next(err);
+                                            if (!thisUser) {
+                                                return next(new Error('No such user'));
+                                            } else {
+                                                const following_arr = thisUser.pending_following;
+                                                following_arr.splice(_containUser(following_arr, req.params.id), 1);
+                                                User.findByIdAndUpdate(thisUser._id, {pending_follower: following_arr}, 
+                                                    {}, cb);
+                                            }
+                                        });
+                                    }, callback);
+                                },
+                                pending_following: (callback) => {
+                                    async.map(theUser.pending_following, (following, cb) => {
+                                        User.findById(following).exec((err, thisUser) => {
+                                            if (err)
+                                                return next(err);
+                                            if (!thisUser) {
+                                                return next(new Error('No such user'));
+                                            } else {
+                                                const follower_arr = thisUser.pending_follower;
+                                                follower_arr.splice(_containUser(follower_arr, req.params.id), 1);
+                                                User.findByIdAndUpdate(thisUser._id, {pending_following: follower_arr}, 
+                                                    {}, cb);
+                                            }
+                                        });
+                                    }, callback);
+                                },
+                            }, (err, results) => {
                                 if (err)
-                                    return next(err);
-                                res.send({success: 'deleted'});
-                            });
+                                return next(err);
+                                bcrypt.hash(req.body.password + '123abc', 10, (err, hashedPassword) => {
+                                    if (err)
+                                        return next(err);
+                                    const user = new User({
+                                        username: 'user_removed',
+                                        email: '',
+                                        password: hashedPassword,
+                                        first_name: '',
+                                        last_name: '',
+                                        date_join: new Date,
+                                        private: true,
+                                        icon: 'icon.jpg', 
+                                        _id: req.params.id,
+                                    });
+                                    User.findByIdAndUpdate(req.params.id, user, {}, (err, emptyUser) => {
+                                        if (err)
+                                            return next(err);
+                                        res.send({success: 'deleted'});
+                                    });
+                                })
+                            })
                         }
                     });
                 }
@@ -214,13 +299,17 @@ exports.user_update = [
                                 private: req.body.private,
                             };
                             if (req.file) {
-                                fs.unlink(theUser.icon, err => {
-                                    if (err)
-                                        console.log('fail delete media');
-                                    else
-                                        console.log('media deleted');
-                                })    
+                                if (theUser.icon !== 'icon.jpg') {
+                                    fs.unlink(theUser.icon, err => {
+                                        if (err)
+                                            console.log('fail delete media');
+                                        else
+                                            console.log('media deleted');
+                                    })    
+                                }
                                 user.icon = req.file.path;
+                            } else {
+                                user.icon = 'icon.jpg';
                             }
                             User.findByIdAndUpdate(req.params.id, user, {}, (err, theUser) => {
                                 if (err)
