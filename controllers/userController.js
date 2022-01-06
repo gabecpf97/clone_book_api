@@ -40,6 +40,7 @@ exports.user_create = [
     }),
     body('first_name', 'First name must not be empty').trim().isLength({min: 1}).escape(),
     body('last_name', 'Last name must not be empty').trim().isLength({min: 1}).escape(),
+    body('descrition').trim().escape(),
     (req, res, next) => {
         console.log(req.body);
         const errors = validationResult(req);
@@ -59,6 +60,7 @@ exports.user_create = [
                         last_name: req.body.last_name,
                         date_join: new Date,
                         private: req.body.private,
+                        description: req.body.description,
                     });
                     if (req.file)
                         user.icon = req.file.path;
@@ -117,6 +119,19 @@ exports.user_get = (req, res, next) => {
             }
         }
     });
+}
+
+exports.user_serach = (req, res, next) => {
+    if (req.query.name.length > 2) {
+        User.find({username: {"$regex": req.query.name, '$options': "i"}}, 'username icon')
+        .exec((err, users) => {
+            if (err)
+                return next(err);
+            res.send({users});
+        });
+    } else {
+        return next(new Error('Please search for 2 or more character'));
+    }
 }
 
 exports.userlist_get = (req, res, next) => {
@@ -275,6 +290,7 @@ exports.user_update = [
     }),
     body('first_name', 'First name must not be empty').trim().isLength({min: 1}).escape(),
     body('last_name', 'Last name must not be empty').trim().isLength({min: 1}).escape(),
+    body('description').trim().escape(),
     (req, res, next) => {
         if (req.user._id.equals(req.params.id)) {
             const errors = validationResult(req);
@@ -297,6 +313,7 @@ exports.user_update = [
                                 first_name: req.body.first_name,
                                 last_name: req.body.last_name,
                                 private: req.body.private,
+                                description: req.body.description,
                             };
                             if (req.file) {
                                 if (theUser.icon !== 'icon.jpg') {

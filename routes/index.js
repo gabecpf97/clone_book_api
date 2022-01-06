@@ -43,6 +43,7 @@ router.get('/', function(req, res, next) {
 // user api calls
 router.post('/user/create', upload.single('icon'), userController.user_create);
 router.post('/user/login', userController.user_logIn);
+router.get('/user/search', auth, userController.user_serach);
 router.get('/user/:id', auth, userController.user_get);
 router.get('/user/:id/list/', auth, userController.userlist_get);
 router.delete('/user/:id', auth, userController.user_delete);

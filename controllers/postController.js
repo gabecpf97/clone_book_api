@@ -69,7 +69,7 @@ exports.post_get_likes = (req, res, next) => {
 
 exports.post_get_timeline = (req, res, next) => {
     async.map(req.user.following, (user, callback) => {
-        User.findById(user._id).populate('posts').exec((err, theUser) => {
+        User.findById(user._id).populate('posts').sort({date: -1}).exec((err, theUser) => {
             if (err)
                 return callback(err);
             callback(null, theUser.posts);

@@ -10,6 +10,7 @@ const userSchema = new Schema({
     date_join: {type: String, required: true},
     private: {type: Boolean, required: true},
     icon: {type: String, required: true},
+    description: {type: String, required: true},
     following: [{type: Schema.Types.ObjectId, ref: 'User'}],
     follower: [{type: Schema.Types.ObjectId, ref: 'User'}],
     pending_following: [{type: Schema.Types.ObjectId, ref: 'User'}],
