@@ -77,19 +77,27 @@ exports.post_get_timeline = (req, res, next) => {
     }, (err, results) => {
         if (err)
             return next(err);
-        const all_posts = [];
-        results.forEach(post_arr => {
-            post_arr.forEach(post => {
-                all_posts.push(post);
-            })
-        })
-        // res.send({all_posts});
-        async.map(all_posts, (myPost, cb) => {
-            Post.findById(myPost._id).populate('user').exec(cb);
-        }, (err, result_arr) => {
-            if(err)
+        User.findById(req.user._id).populate('posts').sort({date: -1})
+        .exec((err, thisUser) => {
+            if (err)
                 return next(err);
-            res.send({all_posts: result_arr});
+                const all_posts = [];
+                thisUser.posts.forEach(post => {
+                    all_posts.push(post);
+                });
+                results.forEach(post_arr => {
+                    post_arr.forEach(post => {
+                        all_posts.push(post);
+                    })
+                })
+                all_posts.sort((a, b) => {return b.date - a.date});
+                async.map(all_posts, (myPost, cb) => {
+                    Post.findById(myPost._id).populate('user').exec(cb);
+                }, (err, result_arr) => {
+                    if(err)
+                        return next(err);
+                    res.send({all_posts: result_arr});
+                })
         })
     });
 }
@@ -111,6 +119,7 @@ exports.get_user_post = (req, res, next) => {
                 }, (err, results) => {
                     if (err)
                         return next(err);
+                    results.sort((a, b) => {return b.date - a.date});
                     res.send({results});
                 })
             }
@@ -135,6 +144,7 @@ exports.get_user_liked_post = (req, res, next) => {
                 }, (err, results) => {
                     if (err)
                         return next(err);
+                    results.sort((a, b) => {return b.date - a.date});
                     res.send({results});
                 })
             }

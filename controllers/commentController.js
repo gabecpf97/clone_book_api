@@ -122,6 +122,7 @@ exports.get_user_comment = (req, res, next) => {
                 }, (err, results) => {
                     if (err)
                         return next(err);
+                    results.sort((a, b) => {return b.date - a.date});
                     res.send({results});
                 })
             }
@@ -146,6 +147,7 @@ exports.get_user_liked_comment = (req, res, next) => {
                 }, (err, results) => {
                     if (err)
                         return next(err);
+                    results.sort((a, b) => {return b.date - a.date});
                     res.send({results});
                 })
             }
