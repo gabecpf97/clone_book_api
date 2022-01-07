@@ -85,6 +85,7 @@ exports.comment_get_list = (req, res, next) => {
             }, (err, results) => {
                 if (err)
                     return next(err);
+                results.sort((a, b) => {return b.date-a.date});
                 res.send({comments: results});
             });
         }
