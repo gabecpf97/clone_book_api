@@ -5,6 +5,10 @@ const path = require('path');
 const User = require('../models/user');
 const Post = require('../models/post');
 
+/**
+ * api call that create a post
+ * return success or error
+ */
 exports.post_create = [
     body('message', 'Please do not post empty message').trim().isLength({min: 1}).escape(),
     (req, res, next) => {
@@ -40,6 +44,10 @@ exports.post_create = [
     }
 ]
 
+/**
+ * api call that get post with the provided id
+ * return the post or error
+ */
 exports.post_get = (req, res, next) => {
     Post.findById(req.params.id).populate('user', 'username icon')
     .populate('likes', 'username icon').populate('comments').exec((err, thePost) => {
@@ -54,6 +62,11 @@ exports.post_get = (req, res, next) => {
     });
 }
 
+/**
+ * api call that get the likes of the id's post
+ * return array of object that contain likes' array and whether user liked or not 
+ * or error
+ */
 exports.post_get_likes = (req, res, next) => {
     Post.findById(req.params.id).populate('likes', 'username icon').exec((err, thePost) => {
         if (err)
@@ -61,12 +74,16 @@ exports.post_get_likes = (req, res, next) => {
         if (!thePost) {
             return next(new Error('No such post'));
         } else {
-            const status = _checkLiked(thePost.likes, req.user._id) > -1;
+            const status = _getIndex(thePost.likes, req.user._id) > -1;
             res.send({likes: thePost.likes, status});
         }
     });
 }
 
+/**
+ * api call that get the post of a user's timeline
+ * return array of post or error
+ */
 exports.post_get_timeline = (req, res, next) => {
     async.map(req.user.following, (user, callback) => {
         User.findById(user._id).populate('posts').sort({date: -1}).exec((err, theUser) => {
@@ -102,6 +119,10 @@ exports.post_get_timeline = (req, res, next) => {
     });
 }
 
+/**
+ * api call that get all post of that user
+ * return array of post or error
+ */
 exports.get_user_post = (req, res, next) => {
     User.findById(req.params.id).exec((err, theUser) => {
         if (err)
@@ -109,7 +130,7 @@ exports.get_user_post = (req, res, next) => {
         if (!theUser) {
             return next(new Error('No such user'));
         } else {
-            if (_checkLiked(theUser.follower, req.user._id) < 0 && 
+            if (_getIndex(theUser.follower, req.user._id) < 0 && 
                 !theUser.equals(req.user._id) && theUser.private) {
                 return next(new Error('Not following the user'));
             } else {
@@ -127,6 +148,10 @@ exports.get_user_post = (req, res, next) => {
     });
 }
 
+/**
+ * api call that get user's liked post
+ * return array of post or error
+ */
 exports.get_user_liked_post = (req, res, next) => {
     User.findById(req.params.id).exec((err, theUser) => {
         if (err)
@@ -134,7 +159,7 @@ exports.get_user_liked_post = (req, res, next) => {
         if (!theUser) {
             return next(new Error('No such user'));
         } else {
-            if (_checkLiked(theUser.follower, req.user._id) < 0 && 
+            if (_getIndex(theUser.follower, req.user._id) < 0 && 
                 !theUser.equals(req.user._id) && theUser.private) {
                 return next(new Error('Not following the user'));
             } else {
@@ -152,6 +177,11 @@ exports.get_user_liked_post = (req, res, next) => {
     })
 }
 
+/**
+ * api call that update a post
+ * only user that created the post can update it
+ * return success or error
+ */
 exports.post_update = [
     body('message', "Message must not be empty").trim().isLength({min: 1}).escape(),
     (req, res, next) => {
@@ -190,6 +220,11 @@ exports.post_update = [
     }
 ]
 
+/**
+ * api call that delete a post
+ * only user who created the post can delete it
+ * return success or error
+ */
 exports.post_delete = (req, res, next) => {
     Post.findById(req.params.id).exec((err, thePost) => {
         if (err)
@@ -199,7 +234,7 @@ exports.post_delete = (req, res, next) => {
         } else {
             if (thePost.user.equals(req.user._id)) {
                 const my_post = req.user.posts;
-                my_post.splice(_checkLiked(req.user.posts, req.params.id), 1);
+                my_post.splice(_getIndex(req.user.posts, req.params.id), 1);
                 async.parallel({
                     post: (callback) => {
                         Post.findByIdAndRemove(req.params.id, callback);
@@ -217,7 +252,7 @@ exports.post_delete = (req, res, next) => {
                                     return next(new Error('No such user'));
                                 } else {
                                     const theLikes = theUser.liked_post;
-                                    theLikes.splice(_checkLiked(theLikes, req.params.id), 1);
+                                    theLikes.splice(_getIndex(theLikes, req.params.id), 1);
                                     User.findByIdAndUpdate(user, {liked_post: theLikes}, 
                                         {}, cb);
                                 }
@@ -236,6 +271,10 @@ exports.post_delete = (req, res, next) => {
     })
 }
 
+/**
+ * api call that allow user to like a post
+ * return success or error
+ */
 exports.post_like = (req, res, next) => {
     Post.findById(req.params.id).exec((err, thePost) => {
         if (err)
@@ -243,7 +282,7 @@ exports.post_like = (req, res, next) => {
         if(!thePost) {
             return next(new Error('No such post'));
         } else {
-            const like_exist = _checkLiked(thePost.likes, req.user._id);
+            const like_exist = _getIndex(thePost.likes, req.user._id);
             if (like_exist < 0) {
                 const like_arr = thePost.likes;
                 const my_arr = req.user.liked_post;
@@ -270,6 +309,10 @@ exports.post_like = (req, res, next) => {
     })
 }
 
+/**
+ * api call that allow user to unlike a post
+ * return success or error
+ */
 exports.post_unlike = (req, res, next) => {
     Post.findById(req.params.id).exec((err, thePost) => {
         if (err)
@@ -277,10 +320,10 @@ exports.post_unlike = (req, res, next) => {
         if (!thePost) {
             return next(new Error('No such post'));
         } else {
-            const like_exist = _checkLiked(thePost.likes, req.user._id);
+            const like_exist = _getIndex(thePost.likes, req.user._id);
             if (like_exist > -1) {
                 const like_arr = thePost.likes;
-                const my_index = _checkLiked(req.user.liked_post, req.params.id);
+                const my_index = _getIndex(req.user.liked_post, req.params.id);
                 const my_arr = req.user.liked_post;
                 like_arr.splice(like_exist, 1);
                 my_arr.splice(my_index, 1);
@@ -305,6 +348,10 @@ exports.post_unlike = (req, res, next) => {
     })
 }
 
+/**
+ * api call that get the media with the name of the file given
+ * return media file or error
+ */
 exports.media_get = (req, res, next) => {
     const imagePath = path.join(__dirname, '../', req.query.name);
     if (fs.access(imagePath, fs.F_OK, (err) => {
@@ -314,7 +361,8 @@ exports.media_get = (req, res, next) => {
     }));
 }
 
-function _checkLiked(arr, targetID) {
+// helper function that find the index of targetd id in array
+function _getIndex(arr, targetID) {
     for (let i = 0; i < arr.length; i++) {
         if (arr[i]._id.equals(targetID))
             return i;
