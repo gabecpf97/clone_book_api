@@ -4,6 +4,12 @@ const Comment = require('../models/comment');
 const Post = require('../models/post');
 const User = require('../models/user');
 
+/**
+ * api call that create comment
+ * store the comment in user's and the post's array 
+ * allow for images file
+ * return success or error
+ */
 exports.comment_create = [
     body('comment', 'Comment must not be empty').trim().isLength({min: 1}).escape(),
     (req, res, next) => {
@@ -57,6 +63,10 @@ exports.comment_create = [
     }
 ]
 
+/**
+ * api call that get the comment using the id in param of url
+ * return the comment or error
+ */
 exports.comment_get = (req, res, next) => {
     Comment.findById(req.params.id).populate('user', 'username icon')
     .populate('likes', 'username icon').exec((err, theComment) => {
@@ -71,6 +81,10 @@ exports.comment_get = (req, res, next) => {
     });
 }
 
+/**
+ * api call that get all comments of that post
+ * return array of comment or error
+ */
 exports.comment_get_list = (req, res, next) => {
     Post.findById(req.params.id).exec((err, thePost) => {
         if (err)
@@ -92,6 +106,12 @@ exports.comment_get_list = (req, res, next) => {
     });
 }
 
+/**
+ * api call that get likes of that comment
+ * return array of object that contain the array of likes and 
+ * whether the user that call this api has liked or not
+ * or error
+ */
 exports.comment_get_likes = (req, res, next) => {
     Comment.findById(req.params.id).populate('likes', 'username icon').exec((err, theComment) => {
         if (err)
@@ -105,6 +125,10 @@ exports.comment_get_likes = (req, res, next) => {
     })
 }
 
+/**
+ * api call that get all comment created by user with the id in url
+ * return the array of comment or error
+ */
 exports.get_user_comment = (req, res, next) => {
     User.findById(req.params.id).exec((err, theUser) => {
         if (err)
@@ -130,6 +154,10 @@ exports.get_user_comment = (req, res, next) => {
     });
 }
 
+/**
+ * api call that get all liked comment of user with the id in url
+ * return the array of comment or error
+ */
 exports.get_user_liked_comment = (req, res, next) => {
     User.findById(req.params.id).exec((err, theUser) => {
         if (err)
@@ -155,7 +183,11 @@ exports.get_user_liked_comment = (req, res, next) => {
     })
 }
 
-
+/**
+ * api call that allow user to update the comment that are created by themselves
+ * only user created it can edit it
+ * return success or error
+ */
 exports.comment_update = [
     body('comment', 'Comment must not be empty').trim().isLength({min: 1}).escape(),
     (req, res, next) => {
@@ -194,6 +226,11 @@ exports.comment_update = [
     }
 ]
 
+/**
+ * api call that delete the comment
+ * only user who created it or the post can delete the comment
+ * return success or error
+ */
 exports.comment_delete = (req, res, next) => {
     Comment.findById(req.params.id).exec((err, theComment) => {
         if (err)
@@ -255,6 +292,11 @@ exports.comment_delete = (req, res, next) => {
     });
 }
 
+/**
+ * api call that allow user like a comment
+ * update comment's likes array that added the user's id
+ * return success or error
+ */
 exports.comment_like = (req, res, next) => {
     Comment.findById(req.params.id).exec((err, theComment) => {
         if (err)
@@ -284,6 +326,11 @@ exports.comment_like = (req, res, next) => {
     });
 }
 
+/**
+ * api call that allow user unlike a comment
+ * update comment's likes array that removed user's id
+ * return success or error
+ */
 exports.comment_unlike = (req, res, next) => {
     Comment.findById(req.params.id).exec((err, theComment) => {
         if (err)
@@ -316,7 +363,7 @@ exports.comment_unlike = (req, res, next) => {
 
 }
 
-
+// Helper function that get the element's index in an array
 function _getIndex(arr, targetID) {
     for (let i = 0; i < arr.length; i++) {
         if (arr[i]._id.equals(targetID))
