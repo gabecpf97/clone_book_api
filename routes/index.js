@@ -6,6 +6,7 @@ const postController = require('../controllers/postController');
 const commentController = require('../controllers/commentController');
 const auth = passport.authenticate('jwt', {session: false});
 const multer = require('multer');
+// save images to local storage in dir uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, './uploads/');
@@ -15,6 +16,7 @@ const storage = multer.diskStorage({
   }
 });
 
+// filter out files upload that are not the correct formats only accept images file now
 const fileFilter = (req, file, cb) => {
   if (
     file.mimetype === "image/jpeg" ||
@@ -27,6 +29,7 @@ const fileFilter = (req, file, cb) => {
   return cb(null, false);
 };
 
+// multer config files
 const upload = multer({
   storage: storage,
   limits: { fileSize: 5000000 },

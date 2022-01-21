@@ -18,7 +18,7 @@ dotenv.config();
 const User = require('./models/user');
 const indexRouter = require('./routes/index');
 
-// passport setup
+// passport setup local for email and password
 passport.use(new LocalStrategy(
   {
     usernameField: 'email',
@@ -40,6 +40,7 @@ passport.use(new LocalStrategy(
   });
 }));
 
+// jwt setup token verify and get the user info from token
 passport.use(new JWTStrategy({
     jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
     secretOrKey: process.env.S_KEY,
@@ -83,6 +84,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// router for all routes
 app.use('/', indexRouter);
 
 // catch 404 and forward to error handler
