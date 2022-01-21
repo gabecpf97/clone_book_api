@@ -6,6 +6,10 @@ const passport = require('passport');
 const User = require('../models/user');
 const fs = require('fs');
 
+/**
+ * api call that create a user account
+ * return token and user info or error
+ */
 exports.user_create = [
     body('username', 'Username must be longer than 4 letter').trim().isLength({min: 4}).escape(),
     check('username').custom(async (value) => {
@@ -77,6 +81,10 @@ exports.user_create = [
     }
 ]
 
+/**
+ * api call that allow user login
+ * return token and user info or error
+ */
 exports.user_logIn = async (req, res, next) => {
     passport.authenticate('local', {session: false}, (err, user, info) => {
         if (err || !user) {
@@ -91,6 +99,10 @@ exports.user_logIn = async (req, res, next) => {
     })(req, res, next);
 }
 
+/**
+ * api call that get user's info
+ * return user info or error
+ */
 exports.user_get = (req, res, next) => {
     User.findById(req.params.id).exec((err, theUser) => {
         if (err)
@@ -98,7 +110,7 @@ exports.user_get = (req, res, next) => {
         if (!theUser) {
             return next(new Error('No such user'));
         } else {
-            if (_containUser(theUser.follower, req.user._id) > -1 || 
+            if (_getIndex(theUser.follower, req.user._id) > -1 || 
                     theUser._id.equals(req.user._id)) {
                 res.send({user: theUser, follow: true});
             } else if (theUser.private) {
@@ -109,7 +121,7 @@ exports.user_get = (req, res, next) => {
                     following: theUser.following,
                     _id: theUser._id
                 }
-                if (_containUser(theUser.pending_follower, req.user._id) > -1) {
+                if (_getIndex(theUser.pending_follower, req.user._id) > -1) {
                     res.send({p_user, pending: true});
                 } else {
                     res.send({p_user, private: true});
@@ -121,6 +133,11 @@ exports.user_get = (req, res, next) => {
     });
 }
 
+/**
+ * api call that serach through all user and find username that 
+ * contian the serach string
+ * return array of user that match the pattern or error
+ */
 exports.user_serach = (req, res, next) => {
     if (req.query.name.length > 2) {
         User.find({username: {"$regex": req.query.name, '$options': "i"}}, 'username icon')
@@ -134,6 +151,11 @@ exports.user_serach = (req, res, next) => {
     }
 }
 
+/**
+ * api call that get array of users
+ * Used for followers, following, pendings
+ * return array of users or error
+ */
 exports.userlist_get = (req, res, next) => {
     User.findById(req.params.id).populate(req.query.type, 'username icon')
     .exec((err, theUser) => {
@@ -147,6 +169,11 @@ exports.userlist_get = (req, res, next) => {
     });
 }
 
+/**
+ * api call that delete an user account
+ * only the user that own the account and enter correct password
+ * return success or error
+ */
 exports.user_delete = [
     body('password').trim().escape(),
     (req, res, next) => {
@@ -174,7 +201,7 @@ exports.user_delete = [
                                                 return next(new Error('No such user'));
                                             } else {
                                                 const following_arr = thisUser.following;
-                                                following_arr.splice(_containUser(following_arr, req.params.id), 1);
+                                                following_arr.splice(_getIndex(following_arr, req.params.id), 1);
                                                 User.findByIdAndUpdate(thisUser._id, {following: following_arr}, 
                                                     {}, cb);
                                             }
@@ -190,7 +217,7 @@ exports.user_delete = [
                                                 return next(new Error('No such user'));
                                             } else {
                                                 const follower_arr = thisUser.follower;
-                                                follower_arr.splice(_containUser(follower_arr, req.params.id), 1);
+                                                follower_arr.splice(_getIndex(follower_arr, req.params.id), 1);
                                                 User.findByIdAndUpdate(thisUser._id, {follower: follower_arr}, 
                                                     {}, cb);
                                             }
@@ -206,7 +233,7 @@ exports.user_delete = [
                                                 return next(new Error('No such user'));
                                             } else {
                                                 const following_arr = thisUser.pending_following;
-                                                following_arr.splice(_containUser(following_arr, req.params.id), 1);
+                                                following_arr.splice(_getIndex(following_arr, req.params.id), 1);
                                                 User.findByIdAndUpdate(thisUser._id, {pending_follower: following_arr}, 
                                                     {}, cb);
                                             }
@@ -222,7 +249,7 @@ exports.user_delete = [
                                                 return next(new Error('No such user'));
                                             } else {
                                                 const follower_arr = thisUser.pending_follower;
-                                                follower_arr.splice(_containUser(follower_arr, req.params.id), 1);
+                                                follower_arr.splice(_getIndex(follower_arr, req.params.id), 1);
                                                 User.findByIdAndUpdate(thisUser._id, {pending_following: follower_arr}, 
                                                     {}, cb);
                                             }
@@ -264,6 +291,10 @@ exports.user_delete = [
     }
 ]
 
+/**
+ * api call that update an user's info
+ * return success or error
+ */
 exports.user_update = [
     body('username', 'Username must be longer than 4 letter').trim().isLength({min: 4}).escape(),
     check('username').custom(async (value, { req }) => {
@@ -343,7 +374,10 @@ exports.user_update = [
     }
 ]
 
-
+/**
+ * api call that update a user's password
+ * return success or error
+ */
 exports.user_update_password = [
     check('password').custom(async (value, { req }) => {
         return new Promise((resolve, reject) => {
@@ -396,6 +430,11 @@ exports.user_update_password = [
     }
 ]
 
+/**
+ * api call that allow a user to follow another user
+ * if the others are private account user will be added to pending list
+ * return success or error
+ */
 exports.user_follow = (req, res, next) => {
     if (req.user._id.equals(req.params.id)) {
         return next(new Error("Can't follow yourself"));
@@ -406,9 +445,9 @@ exports.user_follow = (req, res, next) => {
             if (!theUser) {
                 return next(new Error('No such user'));
             } else {
-                if (_containUser(theUser.follower, req.user._id) > -1) {
+                if (_getIndex(theUser.follower, req.user._id) > -1) {
                     res.send({message: 'Already Following'});
-                } else if (_containUser(theUser.pending_follower, req.user._id) > -1) {
+                } else if (_getIndex(theUser.pending_follower, req.user._id) > -1) {
                     res.send({message: 'Already sent request'})
                 } else {
                     if (theUser.private) {
@@ -460,6 +499,12 @@ exports.user_follow = (req, res, next) => {
     }
 }
 
+/**
+ * api call that allow an user to unfollow another user
+ * if not following but pending request, it will remove current user from
+ * pending list
+ * return success or error
+ */
 exports.user_un_follow = (req, res, next) => {
     if (req.user._id.equals(req.params.id)) {
         return next(new Error("Can't unfollow yourself"));
@@ -472,10 +517,10 @@ exports.user_un_follow = (req, res, next) => {
             } else {
                 let f_array = [];
                 let my_array = [];
-                const my_f_index = _containUser(req.user.following, theUser._id);
-                const follower_index = _containUser(theUser.follower, req.user._id);
-                const my_p__index = _containUser(req.user.pending_following, theUser._id);
-                const pending_index = _containUser(theUser.pending_follower, req.user._id);
+                const my_f_index = _getIndex(req.user.following, theUser._id);
+                const follower_index = _getIndex(theUser.follower, req.user._id);
+                const my_p__index = _getIndex(req.user.pending_following, theUser._id);
+                const pending_index = _getIndex(theUser.pending_follower, req.user._id);
                 if (follower_index < 0 && pending_index > 0) {
                     return next(new Error('No pending or following this user'));
                 } else {
@@ -529,8 +574,12 @@ exports.user_un_follow = (req, res, next) => {
     }
 }
 
+/**
+ * api call that remove a follower that is following current user
+ * return success or error
+ */
 exports.user_remove_follower = (req, res, next) => {
-    const target_index = _containUser(req.user.follower, req.params.id);
+    const target_index = _getIndex(req.user.follower, req.params.id);
     if (target_index > -1) {
         User.findById(req.params.id).exec((err, theUser) => {
             if (err)
@@ -538,7 +587,7 @@ exports.user_remove_follower = (req, res, next) => {
             if (!theUser) {
                 return next(new Error('No such user'));
             } else {
-                const following_index = _containUser(theUser.follower, req.user._id);
+                const following_index = _getIndex(theUser.follower, req.user._id);
                 const following_arr = theUser.following;
                 const follower_arr = req.user.follower;
                 following_arr.splice(following_arr, 1);
@@ -564,8 +613,12 @@ exports.user_remove_follower = (req, res, next) => {
     }
 }
 
+/**
+ * api call that allow user to approve pending follower
+ * return success or error
+ */
 exports.user_approve = (req, res, next) => {
-    const target_index = _containUser(req.user.pending_follower, req.params.id);
+    const target_index = _getIndex(req.user.pending_follower, req.params.id);
     if (target_index > -1) {
         User.findById(req.params.id).exec((err, theUser) => {
             if (err)
@@ -573,7 +626,7 @@ exports.user_approve = (req, res, next) => {
             if (!theUser) {
                 return next(new Error('No such user'));
             } else {
-                const target_p_index = _containUser(theUser.pending_following, req.user._id);
+                const target_p_index = _getIndex(theUser.pending_following, req.user._id);
                 const p_array = req.user.pending_follower;
                 const f_array = req.user.follower;
                 const target_f_array = theUser.following;
@@ -611,8 +664,12 @@ exports.user_approve = (req, res, next) => {
     }
 }
 
+/**
+ * api call that allow user to disapprove a pending follower
+ * return success or error
+ */
 exports.user_un_approve = (req, res, next) => {
-    const target_index = _containUser(req.user.pending_follower, req.params.id);
+    const target_index = _getIndex(req.user.pending_follower, req.params.id);
     if (target_index > -1) {
         User.findById(req.params.id).exec((err, theUser) => {
             if (err)
@@ -622,7 +679,7 @@ exports.user_un_approve = (req, res, next) => {
             } else {
                 const p_array = req.user.pending_follower;
                 const p_f_arr = theUser.pending_following;
-                const p_f_index = _containUser(theUser.pending_following, req.user._id);
+                const p_f_index = _getIndex(theUser.pending_following, req.user._id);
                 p_array.splice(target_index, 1);
                 p_f_arr.splice(p_f_index, 1);
                 async.parallel({
@@ -646,7 +703,8 @@ exports.user_un_approve = (req, res, next) => {
     }
 }
 
-function _containUser(arr, targetID) {
+// helper function that find the index of target id in an array
+function _getIndex(arr, targetID) {
     for (let i = 0; i < arr.length; i++) {
         if (arr[i]._id.equals(targetID))
             return i;
